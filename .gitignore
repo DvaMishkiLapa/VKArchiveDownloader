@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# VK Archive folder
+Archive
+
+# JSON
+*.json
