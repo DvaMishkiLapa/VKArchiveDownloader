@@ -66,14 +66,25 @@ def get_all_dirs_from_directory(path: str) -> list:
 def hook_dialog_name(path: str) -> str | None:
     '''
     Находит имя человека с которым велся диалог (или название диалога/беседы)
-    Если имя не будет найдено, вернет `ID` диалога
+    Если имя не будет найдено, вернет `None`
     path`: путь до папки диалога
     '''
     with open(join(path, 'messages0.html'), 'r', encoding=vk_encoding) as f:
         html = f.read()
         soup = BeautifulSoup(html, 'html.parser')
         name = soup.find('div', class_='ui_crumb')
-    return basename(dirname(path + sep)) if name is None else str(name.string)
+    return None if name is None else str(name.string)
+
+
+def get_dialog_type(dialog_path: str) -> str:
+    '''
+    Возвращает тип диалога:
+    - `id`: личная беседа
+    - `public`: общая беседа
+    `dialog_path`: путь до папки диалога
+    '''
+    folder_name = os.path.split(dialog_path)[-1]
+    return 'public' if '-' in folder_name else 'id'
 
 
 def get_vk_attachments(base_dir: str) -> dict:
@@ -86,8 +97,15 @@ def get_vk_attachments(base_dir: str) -> dict:
     for path in dirs:
         name = hook_dialog_name(path)
         find_links = walk_dialog_directory(path)
-        if len(find_links) > 0:
-            result[name] = find_links
+        # if len(find_links) > 0:
+        folder_name = basename(dirname(path + sep))
+        dialog_type = get_dialog_type(path)
+        dialog_id = f'{dialog_type}{folder_name}'.replace('-', '')
+        result[dialog_id] = {
+            'name': hook_dialog_name(path),
+            'dialog_link': f'https://vk.com/{dialog_id}',
+            'links': find_links
+        }
     return result
 
 
