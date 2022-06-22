@@ -76,15 +76,17 @@ def hook_dialog_name(path: str) -> str | None:
     return None if name is None else str(name.string)
 
 
-def get_dialog_type(dialog_path: str) -> str:
+def get_dialog_type(dialog_path: str) -> list:
     '''
-    Возвращает тип диалога:
+    Возвращает тип диалога и его ID (без -, если был):
     - `id`: личная беседа
     - `public`: общая беседа
     `dialog_path`: путь до папки диалога
     '''
-    folder_name = os.path.split(dialog_path)[-1]
-    return 'public' if '-' in folder_name else 'id'
+    folder_name = split(dialog_path)[-1]
+    dialog_type = 'public' if '-' in folder_name else 'id'
+    dialog_id = folder_name.replace('-', '')
+    return dialog_type, dialog_id
 
 
 def get_vk_attachments(base_dir: str) -> dict:
@@ -97,13 +99,11 @@ def get_vk_attachments(base_dir: str) -> dict:
     for path in dirs:
         name = hook_dialog_name(path)
         find_links = walk_dialog_directory(path)
-        # if len(find_links) > 0:
-        folder_name = basename(dirname(path + sep))
-        dialog_type = get_dialog_type(path)
-        dialog_id = f'{dialog_type}{folder_name}'.replace('-', '')
+        dialog_type, dialog_id = get_dialog_type(path)
+        dialog_full_id = f'{dialog_type}{dialog_id}'
         result[dialog_id] = {
             'name': hook_dialog_name(path),
-            'dialog_link': f'https://vk.com/{dialog_id}',
+            'dialog_link': f'{vk_url}{dialog_full_id}',
             'links': find_links
         }
     return result
