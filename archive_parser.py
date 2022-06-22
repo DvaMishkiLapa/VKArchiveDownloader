@@ -6,6 +6,10 @@ from typing import Dict, List, Tuple
 
 from bs4 import BeautifulSoup
 
+from logger import create_logger
+
+logger = create_logger('logs/vk_parser.log', 'parser', 'DEBUG')
+
 
 class VKArchiveParser():
     def __init__(
@@ -35,7 +39,12 @@ class VKArchiveParser():
         self.archive_path = archive_path
         self.vk_url = vk_url
         self.vk_encoding = vk_encoding
-        self.cpu_count = 1 if cpu_count is None else cpu_count()
+        self.cpu_count = cpu_count()
+        if self.cpu_count is None:
+            self.cpu_count = 1
+            logger.warning('Не удалось получить число логических ядер процессора, получение ссылок будет выполнено в однопоточном режиме')
+        else:
+            logger.info(f'Количество потоков, используемых для получение ссылок: {self.cpu_count}')
         self.link_info = self.__get_vk_attachments()
 
     @classmethod
@@ -51,7 +60,7 @@ class VKArchiveParser():
                 link_tags = soup.find_all('a', class_='attachment__link')
                 return [tag['href'] for tag in link_tags]
             except Exception as e:
-                print(f'Error in file {file_path}: {e}')
+                logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
 
     @classmethod
     def get_all_files_from_directory(self, path: str, ext: list) -> List[str]:
@@ -86,7 +95,7 @@ class VKArchiveParser():
     @classmethod
     def hook_dialog_name(self, path: str, vk_encoding: str = 'cp1251') -> str | None:
         '''
-        Находит имя человека с которым велся диалог (или название диалога/беседы)
+        Находит имя человека, с которым велся диалог (или название диалога/беседы)
         Если имя не будет найдено, вернет `None`
         path`: путь до папки диалога
         `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
@@ -118,12 +127,16 @@ class VKArchiveParser():
         result = {}
         dirs = self.get_all_dirs_from_directory(self.archive_path)
         for path in dirs:
-            print(path)
-            find_links = self.walk_dialog_directory(path, self.cpu_count)
+            logger.info(f'Обработка папки: {path}')
             dialog_type, dialog_id = self.get_dialog_type(path)
             dialog_full_id = f'{dialog_type}{dialog_id}'
+            dialog_name = self.hook_dialog_name(path, self.vk_encoding)
+            find_links = self.walk_dialog_directory(path, self.cpu_count)
+            logger.info(f'=> Имя диалога: {dialog_name}')
+            logger.info(f'=> ID диалога: {dialog_full_id}')
+            logger.info(f'=> Количество найденных ссылок: {len(find_links)}')
             result[dialog_id] = {
-                'name': self.hook_dialog_name(path, self.vk_encoding),
+                'name': dialog_name,
                 'dialog_link': f'{self.vk_url}{dialog_full_id}',
                 'links': find_links
             }
