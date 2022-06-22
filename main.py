@@ -4,6 +4,7 @@ from datetime import datetime
 from itertools import chain
 from os import cpu_count, listdir
 from os.path import isdir, isfile, join, split, splitext
+from typing import Dict, List, Tuple
 
 # import requests
 from bs4 import BeautifulSoup
@@ -19,7 +20,7 @@ cpu_count = cpu_count()
 cpu_count = 1 if cpu_count is None else cpu_count
 
 
-def get_attachment(file_path: str) -> list:
+def get_attachment(file_path: str) -> List[str] | None:
     '''
     Возвращает все ссылки на вложения из `html` файла
     `file_path`: путь до файла для чтения
@@ -33,7 +34,7 @@ def get_attachment(file_path: str) -> list:
             print(f'Error in file {file_path}: {e}')
 
 
-def get_all_files_from_directory(path: str, ext: list) -> list:
+def get_all_files_from_directory(path: str, ext: list) -> List[str]:
     '''
     Возвращает пути до всех файлов, которые содержатся в папке
     `path`: путь до необходимой папки
@@ -42,7 +43,7 @@ def get_all_files_from_directory(path: str, ext: list) -> list:
     return [join(path, f) for f in listdir(path) if isfile(join(path, f)) and splitext(join(path, f))[1] in ext]
 
 
-def walk_dialog_directory(dir_path: str) -> list:
+def walk_dialog_directory(dir_path: str) -> List[str]:
     '''
     Возвращает все вложения из папки диалога
     `dir_path`: путь до папки диалога
@@ -54,7 +55,7 @@ def walk_dialog_directory(dir_path: str) -> list:
     return result
 
 
-def get_all_dirs_from_directory(path: str) -> list:
+def get_all_dirs_from_directory(path: str) -> List[str]:
     '''
     Возвращает путь до всех папок, находящиеся в нужной папке
     `path`: путь до нужной папки
@@ -75,7 +76,7 @@ def hook_dialog_name(path: str) -> str | None:
     return None if name is None else str(name.string)
 
 
-def get_dialog_type(dialog_path: str) -> list:
+def get_dialog_type(dialog_path: str) -> Tuple[str | int]:
     '''
     Возвращает тип диалога и его ID (без -, если был):
     - `id`: личная беседа
@@ -88,7 +89,7 @@ def get_dialog_type(dialog_path: str) -> list:
     return dialog_type, dialog_id
 
 
-def get_vk_attachments(base_dir: str) -> dict:
+def get_vk_attachments(base_dir: str) -> Dict[str, dict]:
     '''
     Возвращает информацию о всех вложения в VK архиве
     `base_dir`: путь до папки VK архива
