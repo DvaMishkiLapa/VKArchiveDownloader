@@ -16,7 +16,8 @@ class VKArchiveParser():
         self,
         archive_path: str,
         vk_url: str = 'https://vk.com/',
-        vk_encoding: str = 'cp1251'
+        vk_encoding: str = 'cp1251',
+        core_count: int = 0
     ) -> None:
         '''
         Парсер архива VKontakte.
@@ -39,12 +40,15 @@ class VKArchiveParser():
         self.archive_path = archive_path
         self.vk_url = vk_url
         self.vk_encoding = vk_encoding
-        self.cpu_count = cpu_count()
-        if self.cpu_count is None:
-            self.cpu_count = 1
-            logger.warning('Не удалось получить число логических ядер процессора, получение ссылок будет выполнено в однопоточном режиме')
+        if core_count <= 0:
+            self.core_count = cpu_count()
+            if self.core_count is None:
+                self.core_count = 1
+                logger.warning('Не удалось получить число логических ядер процессора, получение ссылок будет выполнено в однопоточном режиме')
         else:
-            logger.info(f'Количество потоков, используемых для получение ссылок: {self.cpu_count}')
+            self.core_count = core_count
+            logger.info(f'Количество потоков, используемых для получение ссылок: {self.core_count}')
+
         self.link_info = self.__get_vk_attachments()
 
     @classmethod
@@ -72,15 +76,15 @@ class VKArchiveParser():
         return [join(path, f) for f in listdir(path) if isfile(join(path, f)) and splitext(join(path, f))[1] in ext]
 
     @classmethod
-    def walk_dialog_directory(self, dir_path: str, cpu_count: int = 1) -> List[str]:
+    def walk_dialog_directory(self, dir_path: str, core_count: int = 1) -> List[str]:
         '''
         Возвращает все вложения из папки диалога
         `dir_path`: путь до папки диалога
-        `cpu_count`: Количество используемых потоков в `ProcessPoolExecutor`
+        `core_count`: Количество используемых потоков в `ProcessPoolExecutor`
         '''
         files = self.get_all_files_from_directory(dir_path, ['.html'])
         result = []
-        with ProcessPoolExecutor(cpu_count) as executor:
+        with ProcessPoolExecutor(core_count) as executor:
             result = list(chain(*executor.map(self.get_attachment, files)))
         return result
 
@@ -131,7 +135,7 @@ class VKArchiveParser():
             dialog_type, dialog_id = self.get_dialog_type(path)
             dialog_full_id = f'{dialog_type}{dialog_id}'
             dialog_name = self.hook_dialog_name(path, self.vk_encoding)
-            find_links = self.walk_dialog_directory(path, self.cpu_count)
+            find_links = self.walk_dialog_directory(path, self.core_count)
             logger.info(f'=> Имя диалога: {dialog_name}')
             logger.info(f'=> ID диалога: {dialog_full_id}')
             logger.info(f'=> Количество найденных ссылок: {len(find_links)}')
