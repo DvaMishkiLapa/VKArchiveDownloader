@@ -1,23 +1,22 @@
 import json
-import os
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from itertools import chain
-from os import listdir, sep
-from os.path import basename, dirname, isdir, isfile, join, splitext
+from os import cpu_count, listdir
+from os.path import isdir, isfile, join, split, splitext
 
 # import requests
 from bs4 import BeautifulSoup
 
-archive_path = 'Archive/messages'
+vk_url = 'https://vk.com/'
+
+archive_path = join('Archive', 'messages')
 
 vk_encoding = 'cp1251'
 normal_encoding = 'utf8'
 
-cpu_count = os.cpu_count()
+cpu_count = cpu_count()
 cpu_count = 1 if cpu_count is None else cpu_count
-
-all_file_type = set()
 
 
 def get_attachment(file_path: str) -> list:
@@ -97,7 +96,6 @@ def get_vk_attachments(base_dir: str) -> dict:
     result = {}
     dirs = get_all_dirs_from_directory(base_dir)
     for path in dirs:
-        name = hook_dialog_name(path)
         find_links = walk_dialog_directory(path)
         dialog_type, dialog_id = get_dialog_type(path)
         dialog_full_id = f'{dialog_type}{dialog_id}'
@@ -110,12 +108,8 @@ def get_vk_attachments(base_dir: str) -> dict:
 
 
 if __name__ == '__main__':
-    first_start = datetime.now()
-    for x in range(3):
-        start = datetime.now()
-        res = get_vk_attachments(archive_path)
-        print(f'Прогон {x}: {datetime.now() - start}')
-    first_end = datetime.now()
-    print(f'Среднее время выполнения: {(first_end - first_start) / 3}')
+    start = datetime.now()
+    res = get_vk_attachments(archive_path)
+    print(f'Время выполнения: {datetime.now() - start}')
     with open('links.json', 'w', encoding=normal_encoding) as f:
         f.write(json.dumps(res, indent=4, ensure_ascii=False))
