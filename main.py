@@ -20,8 +20,8 @@ mes_folder = 'messages'
 
 
 async def main():
-    tools.clear_folder(os.path.join(output_folder, downloads_folder))
-    tools.create_folder(os.path.join(output_folder, downloads_folder, mes_folder))
+    tools.clear_folder(join(output_folder, downloads_folder))
+    tools.create_folder(join(output_folder, downloads_folder, mes_folder))
     tools.clear_jsons(output_folder)
     logger.info(f'📁 {output_folder} очищена 🗑️')
 
@@ -29,7 +29,7 @@ async def main():
     first_start = datetime.now()
     obj = VKLinkFinder(archive_path)
     logger.info(f'⌛ создания файла JSON с информацией о ссылках: {datetime.now() - first_start}')
-    with open(os.path.join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
+    with open(join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
         f.write(json.dumps(obj.link_info, indent=4, ensure_ascii=False))
 
     result = {}
@@ -39,7 +39,7 @@ async def main():
         logger.debug(f'Начата обработка 🔗 для {key}, {value["name"]}')
         result[key] = {'name': value["name"], 'dialog_link': value['dialog_link']}
         dialog_name_id = f'{tools.clear_spec(value["name"])}_{key}'
-        path_for_create = os.path.join(output_folder, downloads_folder, mes_folder, dialog_name_id)
+        path_for_create = join(output_folder, downloads_folder, mes_folder, dialog_name_id)
         tools.create_folder(path_for_create)
         logger.debug(f'Создана папка по пути {path_for_create}')
         tasks = [asyncio.ensure_future(
@@ -62,7 +62,7 @@ async def main():
 
     logger.info(f'Количество обработанных 🔗: {full_count}')
     logger.info(f'⌛ обработки 🔗 и скачивания возможных: {full_end - start}')
-    with open(os.path.join(output_folder, 'links_info.json'), 'w', encoding='utf8') as f:
+    with open(join(output_folder, 'links_info.json'), 'w', encoding='utf8') as f:
         f.write(json.dumps(result, indent=4, ensure_ascii=False))
     logger.info(f'Общее ⌛ обработки архива VK: {full_end - first_start}')
 
