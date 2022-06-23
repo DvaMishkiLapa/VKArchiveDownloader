@@ -10,7 +10,7 @@ from typing import Coroutine, Dict, Generator
 import aiofiles
 import aiohttp
 
-from archive_parser import VKArchiveParser
+from links_finder import VKLinkFinder
 from logger import create_logger
 
 logger = create_logger('logs/vk_parser.log', 'main', 'DEBUG')
@@ -123,7 +123,7 @@ async def main():
 
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
     first_start = datetime.now()
-    obj = VKArchiveParser(archive_path)
+    obj = VKLinkFinder(archive_path)
     logger.info(f'⌛ создания файла JSON с информацией о ссылках: {datetime.now() - first_start}')
     with open(os.path.join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
         f.write(json.dumps(obj.link_info, indent=4, ensure_ascii=False))

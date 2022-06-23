@@ -11,7 +11,7 @@ from logger import create_logger
 logger = create_logger('logs/vk_parser.log', 'parser', 'DEBUG')
 
 
-class VKArchiveParser():
+class VKLinkFinder():
     def __init__(
         self,
         archive_path: str,
