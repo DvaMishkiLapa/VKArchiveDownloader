@@ -55,7 +55,7 @@ def clear_folder(path: str) -> None:
     `path`: путь для удаления папок и файлов
     '''
     for f in listdir_nohidden(path):
-        rmtree(path, f)
+        rmtree(join(path, f))
 
 
 def clear_jsons(path: str) -> None:
