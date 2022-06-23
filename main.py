@@ -155,7 +155,8 @@ async def main():
 if __name__ == '__main__':
     try:
         sema = asyncio.BoundedSemaphore(100)
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        if 'nt' in os.name:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except Exception:
         logger.critical(traceback.format_exc())
