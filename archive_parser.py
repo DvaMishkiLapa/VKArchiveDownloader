@@ -131,14 +131,14 @@ class VKArchiveParser():
         result = {}
         dirs = self.get_all_dirs_from_directory(self.archive_path)
         for path in dirs:
-            logger.info(f'Обработка папки: {path}')
+            logger.info(f'📁: {path}')
             dialog_type, dialog_id = self.get_dialog_type(path)
             dialog_full_id = f'{dialog_type}{dialog_id}'
             dialog_name = self.hook_dialog_name(path, self.vk_encoding)
             find_links = self.walk_dialog_directory(path, self.core_count)
             logger.info(f'=> Имя диалога: {dialog_name}')
-            logger.info(f'=> ID диалога: {dialog_full_id}')
-            logger.info(f'=> Количество найденных ссылок: {len(find_links)}')
+            logger.info(f'=> 🆔 диалога: {dialog_full_id}')
+            logger.info(f'=> Количество найденных 🔗: {len(find_links)}')
             result[dialog_id] = {
                 'name': dialog_name,
                 'dialog_link': f'{self.vk_url}{dialog_full_id}',
