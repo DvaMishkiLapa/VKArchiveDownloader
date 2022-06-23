@@ -129,24 +129,28 @@ async def main():
         f.write(json.dumps(obj.link_info, indent=4, ensure_ascii=False))
 
     result = {}
+    full_count = 0
     start = datetime.now()
     for key, value in obj.link_info.items():
-        logger.debug(f'Начата обработка ссылок для {key}, {value["name"]}')
+        logger.debug(f'Начата обработка 🔗 для {key}, {value["name"]}')
         result[key] = {'name': value["name"], 'dialog_link': value['dialog_link']}
         dialog_name_id = f'{clear_spec(value["name"])}_{key}'
         path_for_create = os.path.join(output_folder, downloads_folder, dialog_name_id)
         create_folder(path_for_create)
         logger.debug(f'Создана папка по пути {path_for_create}')
         tasks = [asyncio.ensure_future(get_info(v, path_for_create, value['links'].index(v))) for v in value['links']]
-        logger.debug(f'Задачи на обработку ссылок созданы, их количество: {len(tasks)}')
+        count = len(tasks)
+        full_count += count
+        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
         tasks_result = list(filter(None, await asyncio.gather(*tasks)))
-        logger.debug(f'Задачи на обработку ссылок выполнены, количество валидных данных: {len(tasks_result)}')
+        logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
         for res in tasks_result:
             file_info = result[key].setdefault(res['file_info'], [])
             file_info.append(str(res['url']))
     full_end = datetime.now()
 
-    logger.info(f'⌛ обработки ссылок и скачивания возможных: {full_end - start}')
+    logger.info(f'Количество обработанных 🔗: {full_count}')
+    logger.info(f'⌛ обработки 🔗 и скачивания возможных: {full_end - start}')
     with open(os.path.join(output_folder, 'links_info.json'), 'w', encoding='utf8') as f:
         f.write(json.dumps(result, indent=4, ensure_ascii=False))
     logger.info(f'Общее ⌛ обработки архива VK: {full_end - first_start}')
