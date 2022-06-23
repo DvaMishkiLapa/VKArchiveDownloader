@@ -133,3 +133,6 @@ Archive
 
 # JSON
 *.json
+
+# output folder
+output/

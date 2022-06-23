@@ -4,7 +4,8 @@ import os
 import traceback
 from datetime import datetime
 from os.path import join
-from typing import Coroutine, Dict
+from shutil import rmtree
+from typing import Coroutine, Dict, Generator
 
 import aiofiles
 import aiohttp
@@ -38,13 +39,33 @@ def create_folder(path: str) -> None:
         os.makedirs(path)
 
 
+def listdir_nohidden(path: str) -> Generator:
+    '''
+    Возвращает не скрытые файлы и папки по пути `path`
+    `path`: путь до необходимой папки
+    '''
+    for f in os.listdir(path):
+        if not f.startswith('.'):
+            yield f
+
+
 def clear_folder(path: str) -> None:
     '''
     Удаляет все папки и файлы по пути из `path`
     `path`: путь для удаления папок и файлов
     '''
-    for f in os.listdir(path):
-        os.remove(os.path.join(path, f))
+    for f in listdir_nohidden(path):
+        rmtree(path, f)
+
+
+def clear_jsons(path: str) -> None:
+    '''
+    Удаляет все `JSON` файлы по пути из `path`
+    `path`: путь для удаления папок и файлов
+    '''
+    for f in listdir_nohidden(path):
+        if 'json' in f:
+            os.remove(join(path, f))
 
 
 async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> Coroutine:
@@ -96,7 +117,10 @@ async def get_info(url: str, save_path: str, file_name: str) -> Dict[str, str] |
 
 
 async def main():
-    # clear_folder(f'./{downloads_folder}')
+    clear_folder(os.path.join(output_folder, downloads_folder))
+    clear_jsons(output_folder)
+    logger.info(f'📁 {output_folder} очищена 🗑️')
+
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
     first_start = datetime.now()
     obj = VKArchiveParser(archive_path)
@@ -130,7 +154,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        sema = asyncio.BoundedSemaphore(20)
+        sema = asyncio.BoundedSemaphore(100)
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except Exception:
