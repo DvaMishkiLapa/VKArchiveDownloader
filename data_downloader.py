@@ -40,7 +40,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
     try:
         async with sema, aiohttp.ClientSession() as session:
             async with session.get(url, timeout=5) as response:
-                assert response.status == 200
+                assert response.status == 200, f'Response status: {response.status}'
                 file_info = response.headers['content-type'].split(';')[0]
                 file_type = file_info.split('/')[-1]
                 if any(t in response.headers['content-type'] for t in ('image', 'audio')):
