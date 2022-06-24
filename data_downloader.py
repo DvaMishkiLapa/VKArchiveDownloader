@@ -36,6 +36,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
     `url`: ссылка на файл или ресурс
     `save_path`: путь до папки, куда будет сохранен файл
     `file_name`: имя файла
+    `sema`: семафор для асинхронного скачивания
     '''
     try:
         async with sema, aiohttp.ClientSession() as session:
