@@ -17,14 +17,14 @@
 С помощью данной утилиты возможно скачать данные по ссылкам, которые, так или иначе разбросаны по архиву VKontakte.
 
 Информация о поддерживаемых данных, которые можно скачать:
-| Тип данных                | Поддержка | Примечание                                                                                | Папка хранения, после работы утилиты |
-| ------------------------- | :-------: | ----------------------------------------------------------------------------------------- | ------------------------------------ |
-| `Сообщения`               |   **+**   | [Частичная поддержка](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/9)      | `./output/messages`                  |
-| `Стена`                   |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/10) | `-`                                  |
-| `Нравится' -> Фотографии` |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/11) | `-`                                  |
-| `Фотографии`              |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/12) | `-`                                  |
-| `Видео`                   |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/13) | `-`                                  |
-| `Файлы`                   |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/14) | `-`                                  |
+| Тип данных               | Поддержка | Примечание                                                                                | Папка хранения, после работы утилиты |
+| ------------------------ | :-------: | ----------------------------------------------------------------------------------------- | ------------------------------------ |
+| `Сообщения`              |   **+**   | [Частичная поддержка](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/9)      | `./output/messages`                  |
+| `Стена`                  |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/10) | `-`                                  |
+| `Нравится -> Фотографии` |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/11) | `-`                                  |
+| `Фотографии`             |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/12) | `-`                                  |
+| `Видео`                  |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/13) | `-`                                  |
+| `Файлы`                  |   **-**   | [Необходим парсер данных](https://github.com/DvaMishkiLapa/VKArchiveDownloader/issues/14) | `-`                                  |
 
 Данные, ссылок для которых нет в архиве VKontakte, невозможно скачать. Пример таких данных - `Музыка`.
 
@@ -40,9 +40,7 @@
 "id диалога/беседы": {
     "name": "Имя диалога/беседы",
     "dialog_link": "Ссылка на диалог/беседу",
-    ...,
-    "Тип данных": [..., "Ссылки, связные с типом данных", ...],
-    ...
+    "Тип данных": ["Ссылки, связные с типом данных"]
 }
 ```
 
@@ -85,7 +83,9 @@ git clone https://github.com/DvaMishkiLapa/VKArchiveDownloader.git
 
 ```bash
 py -m venv .venv
+```
 
+```bash
 .\.venv\Scripts\activate
 ```
 
@@ -93,7 +93,9 @@ py -m venv .venv
 
 ```bash
 python3 -m venv .venv
+```
 
+```bash
 source ./.venv/bin/activate
 ```
 
