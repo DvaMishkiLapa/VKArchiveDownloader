@@ -1,3 +1,4 @@
 aiohttp==3.8.1
-beautifulsoup4==4.11.1
 aiofiles==0.8.0
+beautifulsoup4==4.11.1
+requests==2.28.0

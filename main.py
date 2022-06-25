@@ -20,6 +20,21 @@ mes_folder = 'messages'
 
 
 async def main():
+    core_count = os.cpu_count()
+    if core_count is None:
+        core_count = 1
+        thread_download_flag = False
+        logger.warning('Не удалось получить число логических ядер процессора, получение 🔗 будет выполнено в однопоточном режиме')
+        logger.info('Для скачивания файлов будет использован асинхронный режим')
+    elif core_count <= 2:
+        thread_download_flag = False
+        # logger.info(f'Количество потоков, используемых для получение 🔗: {core_count}')
+        logger.info('Процессор имеет мало ядер, для скачивания файлов будет использован асинхронный режим')
+    else:
+        thread_download_flag = True
+        # logger.info(f'Количество потоков, используемых для получение 🔗: {core_count}')
+        logger.info('Для скачивания файлов будет использован многопоточный режим режим')
+
     tools.clear_folder(join(output_folder, downloads_folder))
     tools.create_folder(join(output_folder, downloads_folder, mes_folder))
     tools.clear_jsons(output_folder)
@@ -42,19 +57,31 @@ async def main():
         path_for_create = join(output_folder, downloads_folder, mes_folder, dialog_name_id)
         tools.create_folder(path_for_create)
         logger.debug(f'Создана папка по пути {path_for_create}')
-        tasks = [asyncio.ensure_future(
-            data_downloader.get_info(
-                url=v,
+
+        if thread_download_flag:
+            count = len(value['links'])
+            full_count += count
+            logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+            tasks_result = list(filter(None, data_downloader.multi_get_executor(
+                urls=value['links'],
                 save_path=path_for_create,
-                file_name=value['links'].index(v),
-                sema=sema
-            )
-        ) for v in value['links']]
-        count = len(tasks)
-        full_count += count
-        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-        tasks_result = list(filter(None, await asyncio.gather(*tasks)))
-        logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+                core_count=core_count
+            )))
+            logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+        else:
+            tasks = [asyncio.ensure_future(
+                data_downloader.get_info(
+                    url=v,
+                    save_path=path_for_create,
+                    file_name=value['links'].index(v),
+                    sema=sema
+                )
+            ) for v in value['links']]
+            count = len(tasks)
+            full_count += count
+            logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+            tasks_result = list(filter(None, await asyncio.gather(*tasks)))
+            logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
         for res in tasks_result:
             file_info = result[key].setdefault(res['file_info'], [])
             file_info.append(str(res['url']))
