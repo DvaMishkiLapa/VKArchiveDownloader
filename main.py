@@ -14,15 +14,17 @@ logger = create_logger('logs/vk_parser.log', 'main', 'DEBUG')
 
 archive_path = join('Archive', 'messages')
 output_folder = 'output'
-downloads_folder = 'downloads'
 
-mes_folder = 'messages'
+data_folders = {
+    'messages': 'messages'
+}
 
 
 async def main():
-    tools.clear_folder(join(output_folder, downloads_folder))
-    tools.create_folder(join(output_folder, downloads_folder, mes_folder))
     tools.clear_jsons(output_folder)
+    tools.clear_folder(output_folder)
+    for folder in data_folders.values():
+        tools.create_folder(join(output_folder, folder))
     logger.info(f'📁 {output_folder} очищена 🗑️')
 
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
@@ -39,7 +41,7 @@ async def main():
         logger.debug(f'Начата обработка 🔗 для {key}, {value["name"]}')
         result[key] = {'name': value["name"], 'dialog_link': value['dialog_link']}
         dialog_name_id = f'{tools.clear_spec(value["name"])}_{key}'
-        path_for_create = join(output_folder, downloads_folder, mes_folder, dialog_name_id)
+        path_for_create = join(output_folder, data_folders['messages'], dialog_name_id)
         tools.create_folder(path_for_create)
         logger.debug(f'Создана папка по пути {path_for_create}')
         tasks = [asyncio.ensure_future(
