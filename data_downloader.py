@@ -49,7 +49,12 @@ def get_response_info(content_type: str) -> Dict[str, str]:
 
 def get_file_name_by_link(link: str) -> str | None:
     try:
-        return link.split('/')[-1].split('?extra')[0]
+        if '?extra=' in link:
+            return link.split('/')[-1].split('?extra=')[0]
+        elif '?size=' in link:
+            return link.split('/')[-1].split('?size=')[0]
+        else:
+            return link.split('/')[-1]
     except Exception:
         return None
 
@@ -113,11 +118,14 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
                     tools.create_folder(download_path)
+                    download_file_name = get_file_name_by_link(str(response.url))
+                    if download_file_name is None:
+                        download_file_name = f'{file_name}.{response_info["extension"]}'
                     await asyncio.create_task(
                         downloader(
                             response=response,
                             path=download_path,
-                            name=f'{file_name}.{response_info["extension"]}'
+                            name=download_file_name
                         )
                     )
                     return {'url': response.url, 'file_info': response_info['full_type_info']}
