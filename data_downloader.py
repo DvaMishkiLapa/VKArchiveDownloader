@@ -1,6 +1,6 @@
 import asyncio
-from os.path import join
 import traceback
+from os.path import join
 from typing import Coroutine, Dict
 
 import aiofiles
@@ -47,17 +47,34 @@ def get_response_info(content_type: str) -> Dict[str, str]:
     return result
 
 
-async def find_link_by_url(session: aiohttp.ClientSession, url: str) -> str:
+def get_file_name_by_link(link: str) -> str | None:
+    try:
+        return link.split('/')[-1].split('?extra')[0]
+    except Exception:
+        return None
+
+
+async def find_link_by_url(session: aiohttp.ClientSession, url: str, cookies=None) -> str | None:
     '''
-    Находит ссылку на документ VK
+    Находит ссылку на файл из документа VK
     `session`: сессия
     `url`: ссылка на документ VK, где нужно найти ссылку
+    `cookies` куки для `aiohttp.ClientResponse`
     '''
-    async with session.get(url, timeout=5) as response:
+    async with session.get(url, timeout=5, cookies=cookies) as response:
         assert response.status == 200, f'Response status: {response.status}'
-        soup = BeautifulSoup(await response.text(), 'html.parser')
-        assert 'Ошибка' not in soup.find('title').text, 'Ошибка доступа к документу'
-        return soup.find('img').get('src')
+        if 'text/html' in response.headers['content-type']:
+            soup = BeautifulSoup(await response.text(), 'html.parser')
+            assert 'Ошибка' not in soup.find('title').text, 'Ошибка доступа к документу'
+            for t in [
+                'img',
+                'iframe'
+            ]:
+                if soup.find(t) is not None:
+                    return soup.find(t).get('src')
+        redirect_url = str(response.url)
+        if redirect_url != url:
+            return redirect_url
 
 
 async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> Coroutine:
@@ -72,7 +89,7 @@ async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> 
             await f.write(data)
 
 
-async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.BoundedSemaphore) -> Dict[str, str] | None:
+async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Dict[str, str] | None:
     '''
     Скачивает файл из `response`, возвращая о нем информацию:
     ```
@@ -86,6 +103,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
     `save_path`: путь до папки, куда будет сохранен файл
     `file_name`: имя файла
     `sema`: семафор для асинхронного скачивания
+    `cookies` куки для `aiohttp.ClientSession`
     '''
     try:
         async with sema, aiohttp.ClientSession(headers={'Accept-Language': 'ru'}) as session:
@@ -104,17 +122,21 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                     )
                     return {'url': response.url, 'file_info': response_info['full_type_info']}
                 target_content_type = response.headers['content-type']
+
             if 'text/html' in target_content_type and 'vk.com/doc' in url:
-                link = await asyncio.create_task(find_link_by_url(session, response.url))
-                async with session.get(link, timeout=15) as response:
+                find_res = await asyncio.create_task(find_link_by_url(session, str(response.url), cookies))
+                async with session.get(find_res, timeout=15) as response:
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
                     tools.create_folder(download_path)
+                    download_file_name = get_file_name_by_link(find_res)
+                    if download_file_name is None:
+                        download_file_name = f'{file_name}.{response_info["extension"]}'
                     await asyncio.create_task(
                         downloader(
                             response=response,
                             path=download_path,
-                            name=f'{file_name}.{response_info["extension"]}'
+                            name=download_file_name
                         )
                     )
                     return {'url': response.url, 'file_info': response_info['full_type_info']}

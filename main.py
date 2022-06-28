@@ -5,10 +5,17 @@ import traceback
 from datetime import datetime
 from os.path import join
 
+import browser_cookie3
+import urllib3
+from requests.utils import dict_from_cookiejar
+
 import data_downloader
 import tools
 from links_finder import VKLinkFinder
 from logger import create_logger
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+cookies = dict_from_cookiejar(browser_cookie3.chrome(domain_name='vk.com'))
 
 logger = create_logger('logs/vk_parser.log', 'main', 'DEBUG')
 
@@ -49,7 +56,8 @@ async def main():
                 url=v,
                 save_path=path_for_create,
                 file_name=value['links'].index(v),
-                sema=sema
+                sema=sema,
+                cookies=cookies
             )
         ) for v in value['links']]
         count = len(tasks)
