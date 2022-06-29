@@ -59,9 +59,24 @@ def get_file_name_by_link(link: str) -> str | None:
         return None
 
 
-async def find_link_by_url(session: aiohttp.ClientSession, url: str, cookies=None) -> str | None:
+def check_vk_title_error(soup: BeautifulSoup) -> bool:
     '''
-    Находит ссылку на файл из документа VK
+    Проверяет наличие ошибки доступа к содержимому VK
+    `soup`: экземпляр `BeautifulSoup` для работы с `HTML` контентом
+
+    Возвращает:
+    - `True`: Ошибки нет
+    - `False`: Ошибки есть (ошибки доступа, недоступности, скрытия)
+    '''
+    mes = soup.find('div', class_='message_page_title')
+    if mes is not None:
+        return False if 'Ошибка' in mes.text else True
+    return True
+
+
+async def find_link_by_url(session: aiohttp.ClientSession, url: str, cookies=None) -> str:
+    '''
+    Находит ссылку на файл из документа VK. Если не найдено, возвращает переданный `url`
     `session`: сессия
     `url`: ссылка на документ VK, где нужно найти ссылку
     `cookies` куки для `aiohttp.ClientResponse`
@@ -70,16 +85,14 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, cookies=Non
         assert response.status == 200, f'Response status: {response.status}'
         if 'text/html' in response.headers['content-type']:
             soup = BeautifulSoup(await response.text(), 'html.parser')
-            assert 'Ошибка' not in soup.find('title').text, 'Ошибка доступа к документу'
-            for t in [
-                'img',
-                'iframe'
-            ]:
+            assert check_vk_title_error(soup), 'Ошибка доступа к документу'
+            for t in ['img', 'iframe']:
                 if soup.find(t) is not None:
                     return soup.find(t).get('src')
         redirect_url = str(response.url)
         if redirect_url != url:
             return redirect_url
+        return url
 
 
 async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> Coroutine:
@@ -135,7 +148,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                 target_content_type = response.headers['content-type']
 
             if 'text/html' in target_content_type and 'vk.com/doc' in url:
-                find_res = await asyncio.create_task(find_link_by_url(session, str(response.url), cookies))
+                find_res = await asyncio.create_task(find_link_by_url(session, url, cookies))
                 async with session.get(find_res, timeout=15) as response:
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
@@ -151,6 +164,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                         )
                     )
                     return {'url': response.url, 'file_info': response_info['full_type_info']}
+
             return {'url': response.url, 'file_info': 'not_parse'}
     except Exception as e:
         logger.error(f'Ошибка 🔗 {url}: {e}')
