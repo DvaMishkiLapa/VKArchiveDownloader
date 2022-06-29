@@ -15,6 +15,7 @@ class VKLinkFinder():
     def __init__(
         self,
         archive_path: str,
+        folder_names: Dict[str, str],
         vk_url: str = 'https://vk.com/',
         vk_encoding: str = 'cp1251',
         core_count: int = 0
@@ -22,7 +23,10 @@ class VKLinkFinder():
         '''
         Парсер архива VKontakte.
         `archive_path`: Путь до архива
+        `folder_names` словарь папок
+        `vk_url`: ссылка на VK. Обычно, `https://vk.com/`
         `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
+        `core_count`: число потоков для многопоточной работы
 
         Возвращает информацию обо всех найденных ссылках в архиве
         ```
@@ -40,6 +44,7 @@ class VKLinkFinder():
         self.archive_path = archive_path
         self.vk_url = vk_url
         self.vk_encoding = vk_encoding
+        self.folder_names = folder_names
         if core_count <= 0:
             self.core_count = cpu_count()
             if self.core_count is None:
@@ -131,19 +136,23 @@ class VKLinkFinder():
         `base_dir`: путь до папки VK архива
         '''
         result = {}
-        dirs = self.get_all_dirs_from_directory(self.archive_path)
-        for path in dirs:
-            logger.info(f'📁: {path}')
-            dialog_type, dialog_id = self.get_dialog_type(path)
-            dialog_full_id = f'{dialog_type}{dialog_id}'
-            dialog_name = self.hook_dialog_name(path, self.vk_encoding)
-            find_links = self.walk_dialog_directory(path, self.core_count)
-            logger.info(f'=> Имя диалога: {dialog_name}')
-            logger.info(f'=> 🆔 диалога: {dialog_full_id}')
-            logger.info(f'=> Количество найденных 🔗: {len(find_links)}')
-            result[dialog_id] = {
-                'name': dialog_name,
-                'dialog_link': f'{self.vk_url}{dialog_full_id}',
-                'links': find_links
-            }
+
+        mes_folder = self.folder_names.get('messages', False)
+        if mes_folder:
+            result[mes_folder] = {}
+            dirs = self.get_all_dirs_from_directory(join(self.archive_path, mes_folder))
+            for path in dirs:
+                logger.info(f'📁: {path}')
+                dialog_type, dialog_id = self.get_dialog_type(path)
+                dialog_full_id = f'{dialog_type}{dialog_id}'
+                dialog_name = self.hook_dialog_name(path, self.vk_encoding)
+                find_links = self.walk_dialog_directory(path, self.core_count)
+                logger.info(f'=> Имя диалога: {dialog_name}')
+                logger.info(f'=> 🆔 диалога: {dialog_full_id}')
+                logger.info(f'=> Количество найденных 🔗: {len(find_links)}')
+                result[mes_folder][dialog_id] = {
+                    'name': dialog_name,
+                    'dialog_link': f'{self.vk_url}{dialog_full_id}',
+                    'links': find_links
+                }
         return result
