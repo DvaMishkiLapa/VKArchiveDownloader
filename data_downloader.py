@@ -111,6 +111,9 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
     `cookies` куки для `aiohttp.ClientSession`
     '''
     try:
+        if 'vk.com/video' in url:
+            return {'url': url, 'file_info': 'vk_video'}
+
         async with sema, aiohttp.ClientSession(headers={'Accept-Language': 'ru'}) as session:
             async with session.get(url, timeout=15) as response:
                 assert response.status == 200, f'Response status: {response.status}'
