@@ -79,12 +79,15 @@ class VKLinkFinder():
                 if link_tags:
                     result = []
                     for link in link_tags:
-                        if 'vk.com/photo' in link.get('href', ''):
-                            result.append(link.get('href', ''))
+                        find_link = link.get('href', '')
+                        if 'vk.com/photo' in find_link:
+                            result.append(find_link)
                     return result
 
+                return ''
             except Exception as e:
                 logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
+                return ''
 
     @classmethod
     def get_all_files_from_directory(self, path: str, ext: list) -> List[str]:
