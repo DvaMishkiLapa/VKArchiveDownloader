@@ -116,9 +116,8 @@ class VKLinkFinder():
         `core_count`: Количество используемых потоков в `ProcessPoolExecutor`
         '''
         files = self.get_all_files_from_directory(dir_path, ['.html'])
-        result = []
         with ProcessPoolExecutor(core_count) as executor:
-            result = list(chain(*executor.map(self.get_attachment, files)))
+            result = list(set(chain(*executor.map(self.get_attachment, files))))
         return result
 
     @classmethod
