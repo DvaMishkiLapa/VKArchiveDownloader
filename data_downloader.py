@@ -129,6 +129,28 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
     try:
         if 'vk.com/video' in url:
             return {'url': url, 'file_info': 'vk_video'}
+        elif 'vk.com/id' in url or 'vk.com/public' in url:
+            return {'url': url, 'file_info': 'vk_contact'}
+        elif 'vk.com/story' in url:
+            return {'url': url, 'file_info': 'vk_story'}
+        elif 'github.com' in url:
+            return {'url': url, 'file_info': 'github_link'}
+        elif 'aliexpress.com' in url:
+            return {'url': url, 'file_info': 'aliexpress_link'}
+        elif 'pastebin.com' in url:
+            return {'url': url, 'file_info': 'pastebin_link'}
+        elif 'drive.google.com' in url:
+            return {'url': url, 'file_info': 'gdrive_link'}
+        elif 'google.com' in url:
+            return {'url': url, 'file_info': 'google_link'}
+        elif 'wikipedia.org' in url:
+            return {'url': url, 'file_info': 'wikipedia_link'}
+        elif 'pornhub.com' in url:
+            return {'url': url, 'file_info': '🍓'}
+        elif 't.me' in url:
+            return {'url': url, 'file_info': 'telegram_contact'}
+        elif 'dns-shop.ru' in url:
+            return {'url': url, 'file_info': 'dns_shop_link'}
 
         async with sema, aiohttp.ClientSession(headers={'Accept-Language': 'ru'}) as session:
             async with session.get(url, timeout=30) as response:
