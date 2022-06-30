@@ -109,10 +109,10 @@ class VKLinkFinder():
         return [join(path, f) for f in listdir(path) if isfile(join(path, f)) and splitext(join(path, f))[1] in ext]
 
     @classmethod
-    def walk_dialog_directory(self, dir_path: str, core_count: int = 1) -> List[str]:
+    def walk_directory(self, dir_path: str, core_count: int = 1) -> List[str]:
         '''
-        Возвращает все вложения из папки диалога
-        `dir_path`: путь до папки диалога
+        Возвращает все вложения из папки
+        `dir_path`: путь до папки
         `core_count`: Количество используемых потоков в `ProcessPoolExecutor`
         '''
         files = self.get_all_files_from_directory(dir_path, ['.html'])
@@ -175,7 +175,7 @@ class VKLinkFinder():
                 dialog_type, dialog_id = self.get_dialog_type(path)
                 dialog_full_id = f'{dialog_type}{dialog_id}'
                 dialog_name = self.hook_dialog_name(path, self.vk_encoding)
-                find_links = self.walk_dialog_directory(path, self.core_count)
+                find_links = self.walk_directory(path, self.core_count)
                 count_find_link = len(find_links)
                 mes_links += count_find_link
                 logger.info(f'=> Имя диалога: {dialog_name}')
@@ -186,22 +186,22 @@ class VKLinkFinder():
                     'dialog_link': f'{self.vk_url}{dialog_full_id}',
                     'links': find_links
                 }
-        logger.info(f'🔍 Количество найденных 🔗 в {mes_folder}: {mes_links}')
-        all_find_links += mes_links
+            logger.info(f'🔍 Количество найденных 🔗 в {mes_folder}: {mes_links}')
+            all_find_links += mes_links
 
         likes_photo_links = 0
         likes_photo_folder = self.folder_names.get('likes_photo', False)
         if likes_photo_folder:
             path = join(self.archive_path, likes_photo_folder)
             logger.info(f'📁: {path}')
-            find_links = self.walk_dialog_directory(path, self.core_count)
+            find_links = self.walk_directory(path, self.core_count)
             count_find_link = len(find_links)
             likes_photo_links += count_find_link
             result['likes_photo'] = {
                 'links': find_links
             }
-        logger.info(f'🔍 Количество найденных 🔗 в {likes_photo_folder}: {likes_photo_links}')
-        all_find_links += likes_photo_links
+            logger.info(f'🔍 Количество найденных 🔗 в {likes_photo_folder}: {likes_photo_links}')
+            all_find_links += likes_photo_links
 
         profile_photos_links = 0
         profile_photo_folder = self.folder_names.get('photos', False)
@@ -210,15 +210,15 @@ class VKLinkFinder():
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, profile_photo_folder))
             for path in dirs:
                 logger.info(f'📁: {path}')
-                find_links = self.walk_dialog_directory(path, self.core_count)
+                find_links = self.walk_directory(path, self.core_count)
                 count_find_link = len(find_links)
                 profile_photos_links += count_find_link
                 logger.info(f'=> Количество найденных 🔗: {count_find_link}')
                 result['photos'][basename(path)] = {
                     'links': find_links
                 }
-        logger.info(f'🔍 Количество найденных 🔗 в {profile_photo_folder}: {profile_photos_links}')
-        all_find_links += profile_photos_links
+            logger.info(f'🔍 Количество найденных 🔗 в {profile_photo_folder}: {profile_photos_links}')
+            all_find_links += profile_photos_links
 
         logger.info(f'🔍 Количество всех найденных 🔗: {all_find_links}')
 
