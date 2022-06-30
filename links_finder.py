@@ -90,7 +90,7 @@ class VKLinkFinder():
                     result = []
                     for link in link_tags:
                         find_link = link['href']
-                        if 'vk.com/photo' in find_link:
+                        if 'vk.com' in find_link:
                             result.append(find_link)
                     return result
 
@@ -218,6 +218,22 @@ class VKLinkFinder():
                 }
             logger.info(f'🔍 Количество найденных 🔗 в {profile_photo_folder}: {profile_photos_links}')
             all_find_links += profile_photos_links
+
+        documents_links = 0
+        documents_folder = self.folder_names.get('profile', False)
+        if documents_folder:
+            result['profile'] = {}
+            dirs = self.get_all_dirs_from_directory(join(self.archive_path, documents_folder))
+            path = join(self.archive_path, documents_folder)
+            logger.info(f'📁: {path}')
+            find_links = self.walk_directory(path, self.core_count)
+            count_find_link = len(find_links)
+            documents_links += count_find_link
+            result['profile'] = {
+                'links': find_links
+            }
+        logger.info(f'🔍 Количество найденных 🔗 в {documents_folder}: {documents_links}')
+        all_find_links += documents_links
 
         logger.info(f'🔍 Количество всех найденных 🔗: {all_find_links}')
 

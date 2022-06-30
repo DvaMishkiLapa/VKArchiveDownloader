@@ -127,6 +127,45 @@ async def profile_photos_handler(profile_photos_info: Dict[str, Any], folder: st
     return result, full_count
 
 
+async def profile_handler(profile_info: Dict[str, Any], folder: str) -> Tuple[Any]:
+    '''
+    Обработчик данных о профиле (скорее, о документах профиля)
+    `profile_photos_info` сырые данные для обработчика о профиле `VKLinkFinder`
+    `folder`: имя папки для хранения файлов
+
+    Возвращает структурированные данные и количество обработанных ссылок
+    '''
+    result = {}
+    full_count = 0
+    # for info_type, info in profile_info.items():
+    info_type = 'documents'
+    info = profile_info
+
+    logger.debug(f'Начата обработка 🔗 для {info_type}')
+    path_for_create = join(output_folder, folder, info_type)
+    tools.create_folder(path_for_create)
+    logger.debug(f'Создана папка по пути {path_for_create}')
+    result[info_type] = {}
+    tasks = [asyncio.ensure_future(
+        data_downloader.get_info(
+            url=v,
+            save_path=path_for_create,
+            file_name=info['links'].index(v),
+            sema=sema,
+            cookies=cookies
+        )
+    ) for v in info['links']]
+    count = len(tasks)
+    full_count += count
+    logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+    tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+    logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+    for res in tasks_result:
+        file_info = result[info_type].setdefault(res['file_info'], [])
+        file_info.append(res['url'])
+    return result, full_count
+
+
 folder_info = {
     'messages': {
         'folder': 'messages',
@@ -139,6 +178,10 @@ folder_info = {
     'photos': {
         'folder': 'photos',
         'handler': profile_photos_handler
+    },
+    'profile': {
+        'folder': 'profile',
+        'handler': profile_handler
     }
 }
 
