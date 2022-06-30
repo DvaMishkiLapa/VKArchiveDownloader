@@ -53,7 +53,7 @@ async def messages_handler(messages_info: Dict[str, Any], folder: str) -> Tuple[
         count = len(tasks)
         full_count += count
         logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-        tasks_result = list(filter(None, await asyncio.gather(*tasks)))
+        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
         logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
         for res in tasks_result:
             file_info = result[id].setdefault(res['file_info'], [])
@@ -84,10 +84,46 @@ async def likes_photo_handler(likes_photo_info: Dict[str, Any], folder: str) -> 
     count = len(tasks)
     full_count += count
     logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-    tasks_result = list(filter(None, await asyncio.gather(*tasks)))
+    tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
     for res in tasks_result:
         file_info = result.setdefault(res['file_info'], [])
         file_info.append(res['url'])
+    return result, full_count
+
+
+async def profile_photos_handler(profile_photos_info: Dict[str, Any], folder: str) -> Tuple[Any]:
+    '''
+    Обработчик данных о фото профиля
+    `profile_photos_info` сырые данные для обработчика о фото профиля из `VKLinkFinder`
+    `folder`: имя папки для хранения файлов
+
+    Возвращает структурированные данные и количество обработанных ссылок
+    '''
+    result = {}
+    full_count = 0
+    for photo_type, photo_info in profile_photos_info.items():
+        logger.debug(f'Начата обработка 🔗 для {photo_type}')
+        path_for_create = join(output_folder, folder, photo_type)
+        tools.create_folder(path_for_create)
+        logger.debug(f'Создана папка по пути {path_for_create}')
+        result[photo_type] = {}
+        tasks = [asyncio.ensure_future(
+            data_downloader.get_info(
+                url=v,
+                save_path=path_for_create,
+                file_name=photo_info['links'].index(v),
+                sema=sema,
+                cookies=cookies
+            )
+        ) for v in photo_info['links']]
+        count = len(tasks)
+        full_count += count
+        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+        logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+        for res in tasks_result:
+            file_info = result[photo_type].setdefault(res['file_info'], [])
+            file_info.append(res['url'])
     return result, full_count
 
 
@@ -99,6 +135,10 @@ folder_info = {
     'likes_photo': {
         'folder': join('likes', 'photo'),
         'handler': likes_photo_handler
+    },
+    'photos': {
+        'folder': 'photos',
+        'handler': profile_photos_handler
     }
 }
 

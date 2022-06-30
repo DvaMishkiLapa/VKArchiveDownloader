@@ -1,7 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor
 from itertools import chain
 from os import cpu_count, listdir
-from os.path import isdir, isfile, join, split, splitext
+from os.path import isdir, isfile, join, split, splitext, basename
 from typing import Dict, List, Tuple
 
 from bs4 import BeautifulSoup
@@ -70,16 +70,26 @@ class VKLinkFinder():
                 soup = BeautifulSoup(f.read(), 'html.parser')
 
                 # for link in messages
-                link_tags = soup.find_all('a', class_='attachment__link')
+                link_tags = soup.find_all('a', class_='attachment__link', href=str)
                 if link_tags:
                     return [tag['href'] for tag in link_tags]
 
-                # for link in likes -> photo
-                link_tags = soup.find_all('a')
+                # for link profile photos
+                link_tags = soup.find_all('img', src=str)
                 if link_tags:
                     result = []
                     for link in link_tags:
-                        find_link = link.get('href', '')
+                        find_link = link['src']
+                        if 'http' in find_link:
+                            result.append(find_link)
+                    return result
+
+                # for link in likes -> photo
+                link_tags = soup.find_all('a', href=str)
+                if link_tags:
+                    result = []
+                    for link in link_tags:
+                        find_link = link['href']
                         if 'vk.com/photo' in find_link:
                             result.append(find_link)
                     return result
@@ -181,4 +191,17 @@ class VKLinkFinder():
             result['likes_photo'] = {
                 'links': find_links
             }
+
+        profile_photo_folder = self.folder_names.get('photos', False)
+        if profile_photo_folder:
+            result['photos'] = {}
+            dirs = self.get_all_dirs_from_directory(join(self.archive_path, profile_photo_folder))
+            for path in dirs:
+                logger.info(f'📁: {path}')
+                find_links = self.walk_dialog_directory(path, self.core_count)
+                logger.info(f'=> Количество найденных 🔗: {len(find_links)}')
+                result['photos'][basename(path)] = {
+                    'links': find_links
+                }
+
         return result
