@@ -68,8 +68,21 @@ class VKLinkFinder():
         with open(file_path, encoding=vk_encoding) as f:
             try:
                 soup = BeautifulSoup(f.read(), 'html.parser')
+
+                # for link in messages
                 link_tags = soup.find_all('a', class_='attachment__link')
-                return [tag['href'] for tag in link_tags]
+                if link_tags:
+                    return [tag['href'] for tag in link_tags]
+
+                # for link in likes -> photo
+                link_tags = soup.find_all('a')
+                if link_tags:
+                    result = []
+                    for link in link_tags:
+                        if 'vk.com/photo' in link.get('href', ''):
+                            result.append(link.get('href', ''))
+                    return result
+
             except Exception as e:
                 logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
 
@@ -139,7 +152,7 @@ class VKLinkFinder():
 
         mes_folder = self.folder_names.get('messages', False)
         if mes_folder:
-            result[mes_folder] = {}
+            result['messages'] = {}
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, mes_folder))
             for path in dirs:
                 logger.info(f'📁: {path}')
@@ -150,9 +163,19 @@ class VKLinkFinder():
                 logger.info(f'=> Имя диалога: {dialog_name}')
                 logger.info(f'=> 🆔 диалога: {dialog_full_id}')
                 logger.info(f'=> Количество найденных 🔗: {len(find_links)}')
-                result[mes_folder][dialog_id] = {
+                result['messages'][dialog_id] = {
                     'name': dialog_name,
                     'dialog_link': f'{self.vk_url}{dialog_full_id}',
                     'links': find_links
                 }
+
+        likes_photo_folder = self.folder_names.get('likes_photo', False)
+        if likes_photo_folder:
+            path = join(self.archive_path, likes_photo_folder)
+            logger.info(f'📁: {path}')
+            find_links = self.walk_dialog_directory(path, self.core_count)
+            logger.info(f'=> Количество найденных 🔗: {len(find_links)}')
+            result['likes_photo'] = {
+                'links': find_links
+            }
         return result

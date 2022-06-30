@@ -27,7 +27,7 @@ output_folder = 'output'
 async def messages_handler(messages_info: Dict[str, Any], folder: str) -> Tuple[Any]:
     '''
     Обработчик данных о сообщениях
-    `messages_info` сырые данные для обработчика о сообщениях их `VKLinkFinder`
+    `messages_info` сырые данные для обработчика о сообщениях из `VKLinkFinder`
     `folder`: имя папки для хранения файлов
 
     Возвращает структурированные данные и количество обработанных ссылок
@@ -35,7 +35,6 @@ async def messages_handler(messages_info: Dict[str, Any], folder: str) -> Tuple[
     result = {}
     full_count = 0
     for id, id_info in messages_info.items():
-        logger.debug(id)
         logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
         result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
         dialog_name_id = f'{tools.clear_spec(id_info["name"])}_{id}'
@@ -58,7 +57,37 @@ async def messages_handler(messages_info: Dict[str, Any], folder: str) -> Tuple[
         logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
         for res in tasks_result:
             file_info = result[id].setdefault(res['file_info'], [])
-            file_info.append(str(res['url']))
+            file_info.append(res['url'])
+    return result, full_count
+
+
+async def likes_photo_handler(likes_photo_info: Dict[str, Any], folder: str) -> Tuple[Any]:
+    '''
+    Обработчик данных о лайкнутых фото
+    `likes_photo_info` сырые данные для обработчика о лайкнутых фото из `VKLinkFinder`
+    `folder`: имя папки для хранения файлов
+
+    Возвращает структурированные данные и количество обработанных ссылок
+    '''
+    result = {}
+    full_count = 0
+    path_for_create = join(output_folder, folder)
+    tasks = [asyncio.ensure_future(
+        data_downloader.get_info(
+            url=v,
+            save_path=path_for_create,
+            file_name=likes_photo_info['links'].index(v),
+            sema=sema,
+            cookies=cookies
+        )
+    ) for v in likes_photo_info['links']]
+    count = len(tasks)
+    full_count += count
+    logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+    tasks_result = list(filter(None, await asyncio.gather(*tasks)))
+    for res in tasks_result:
+        file_info = result.setdefault(res['file_info'], [])
+        file_info.append(res['url'])
     return result, full_count
 
 
@@ -66,6 +95,10 @@ folder_info = {
     'messages': {
         'folder': 'messages',
         'handler': messages_handler
+    },
+    'likes_photo': {
+        'folder': join('likes', 'photo'),
+        'handler': likes_photo_handler
     }
 }
 
@@ -74,7 +107,6 @@ async def main():
     tools.clear_jsons(output_folder)
     tools.clear_folder(output_folder)
     logger.info(f'📁 {output_folder} очищена 🗑️')
-
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
     first_start = datetime.now()
     folder_names = {key: values['folder'] for key, values in folder_info.items()}
@@ -88,11 +120,11 @@ async def main():
     result = {}
     full_count = 0
     start = datetime.now()
-    for data_dype, info in obj.link_info.items():
-        logger.info(f'[===] Начат процесс обработки {data_dype} [===]')
-        coroutine_handler = folder_info[data_dype]['handler']
-        res_handler, count = await asyncio.create_task(coroutine_handler(info, data_dype))
-        result[data_dype] = res_handler
+    for data_type, info in obj.link_info.items():
+        logger.info(f'⚙️ Начат процесс обработки {data_type} ⚙️')
+        coroutine_handler = folder_info[data_type]['handler']
+        res_handler, count = await asyncio.create_task(coroutine_handler(info, folder_info[data_type]['folder']))
+        result[data_type] = res_handler
         full_count += count
     full_end = datetime.now()
 

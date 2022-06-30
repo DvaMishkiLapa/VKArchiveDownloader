@@ -74,11 +74,13 @@ def check_vk_title_error(soup: BeautifulSoup) -> bool:
     return True
 
 
-async def find_link_by_url(session: aiohttp.ClientSession, url: str, cookies=None) -> str:
+async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: str, cookies=None) -> str:
     '''
     Находит ссылку на файл из документа VK. Если не найдено, возвращает переданный `url`
     `session`: сессия
     `url`: ссылка на документ VK, где нужно найти ссылку
+    `pattern`: паттерн для поиска
+    - `doc`: паттерн для поиска ссылок в документах
     `cookies` куки для `aiohttp.ClientResponse`
     '''
     async with session.get(url, timeout=5, cookies=cookies) as response:
@@ -86,9 +88,10 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, cookies=Non
         if 'text/html' in response.headers['content-type']:
             soup = BeautifulSoup(await response.text(), 'html.parser')
             assert check_vk_title_error(soup), 'Ошибка доступа к документу'
-            for t in ['img', 'iframe']:
-                if soup.find(t) is not None:
-                    return soup.find(t).get('src')
+            if 'doc' in pattern:
+                for t in ['img', 'iframe']:
+                    if soup.find(t) is not None:
+                        return soup.find(t).get('src')
         redirect_url = str(response.url)
         if redirect_url != url:
             return redirect_url
@@ -144,11 +147,11 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                             name=download_file_name
                         )
                     )
-                    return {'url': response.url, 'file_info': response_info['full_type_info']}
+                    return {'url': str(response.url), 'file_info': response_info['full_type_info']}
                 target_content_type = response.headers['content-type']
 
             if 'text/html' in target_content_type and 'vk.com/doc' in url:
-                find_res = await asyncio.create_task(find_link_by_url(session, url, cookies))
+                find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
                 async with session.get(find_res, timeout=15) as response:
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
@@ -163,9 +166,9 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                             name=download_file_name
                         )
                     )
-                    return {'url': response.url, 'file_info': response_info['full_type_info']}
+                    return {'url': str(response.url), 'file_info': response_info['full_type_info']}
 
-            return {'url': response.url, 'file_info': 'not_parse'}
+            return {'url': url, 'file_info': 'not_parse'}
     except Exception as e:
         logger.error(f'Ошибка 🔗 {url}: {e}')
         logger.debug(traceback.format_exc())
