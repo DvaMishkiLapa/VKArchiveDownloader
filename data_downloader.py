@@ -131,7 +131,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
             return {'url': url, 'file_info': 'vk_video'}
 
         async with sema, aiohttp.ClientSession(headers={'Accept-Language': 'ru'}) as session:
-            async with session.get(url, timeout=15) as response:
+            async with session.get(url, timeout=30) as response:
                 assert response.status == 200, f'Response status: {response.status}'
                 if any(t in response.headers['content-type'] for t in ('image', 'audio')):
                     response_info = get_response_info(response.headers['content-type'])
@@ -152,7 +152,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
 
             if 'text/html' in target_content_type and 'vk.com/doc' in url:
                 find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
-                async with session.get(find_res, timeout=15) as response:
+                async with session.get(find_res, timeout=900) as response:
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
                     tools.create_folder(download_path)
