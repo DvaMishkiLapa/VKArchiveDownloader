@@ -1,14 +1,21 @@
+import configparser
 from concurrent.futures import ProcessPoolExecutor
 from itertools import chain
 from os import cpu_count, listdir
-from os.path import isdir, isfile, join, split, splitext, basename
+from os.path import basename, isdir, isfile, join, split, splitext
 from typing import Dict, List, Tuple
 
 from bs4 import BeautifulSoup
 
 from logger import create_logger
 
-logger = create_logger('logs/vk_parser.log', 'parser', 'DEBUG')
+config = configparser.ConfigParser()
+config_read = config.read('config.ini', encoding='utf8')
+if config_read is None:
+    logger = create_logger('logs/vk_parser.log', 'links_finder', 'DEBUG')
+else:
+    log_level = config['main_parameters'].get('log_level', 'DEBUG')
+    logger = create_logger('logs/vk_parser.log', 'links_finder', log_level)
 
 
 class VKLinkFinder():
@@ -230,8 +237,8 @@ class VKLinkFinder():
             result['profile'] = {
                 'links': find_links
             }
-        logger.info(f'🔍 Количество найденных 🔗 в {documents_folder}: {documents_links}')
-        all_find_links += documents_links
+            logger.info(f'🔍 Количество найденных 🔗 в {documents_folder}: {documents_links}')
+            all_find_links += documents_links
 
         logger.info(f'🔍 Количество всех найденных 🔗: {all_find_links}')
 

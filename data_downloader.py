@@ -1,4 +1,5 @@
 import asyncio
+import configparser
 import traceback
 from os.path import join
 from typing import Coroutine, Dict
@@ -10,7 +11,13 @@ from bs4 import BeautifulSoup
 import tools
 from logger import create_logger
 
-logger = create_logger('logs/vk_parser.log', 'data_downloader', 'DEBUG')
+config = configparser.ConfigParser()
+config_read = config.read('config.ini', encoding='utf8')
+if config_read is None:
+    logger = create_logger('logs/vk_parser.log', 'data_downloader', 'DEBUG')
+else:
+    log_level = config['main_parameters'].get('log_level', 'DEBUG')
+    logger = create_logger('logs/vk_parser.log', 'data_downloader', log_level)
 
 
 def get_response_info(content_type: str) -> Dict[str, str]:
