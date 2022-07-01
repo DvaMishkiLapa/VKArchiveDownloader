@@ -205,7 +205,7 @@ class VKLinkFinder():
         profile_photos_links = 0
         profile_photo_folder = self.folder_names.get('photos', False)
         if profile_photo_folder:
-            result['photos'] = {}
+            result['photos'] = {'links': []}
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, profile_photo_folder))
             for path in dirs:
                 logger.info(f'📁: {path}')
@@ -213,9 +213,7 @@ class VKLinkFinder():
                 count_find_link = len(find_links)
                 profile_photos_links += count_find_link
                 logger.info(f'=> Количество найденных 🔗: {count_find_link}')
-                result['photos'][basename(path)] = {
-                    'links': find_links
-                }
+                result['photos']['links'].extend(find_links)
             logger.info(f'🔍 Количество найденных 🔗 в {profile_photo_folder}: {profile_photos_links}')
             all_find_links += profile_photos_links
 
