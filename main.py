@@ -183,7 +183,7 @@ async def main():
         exit()
 
     if config['main_parameters'].get('use_coockie', False):
-        cookies = dict_from_cookiejar(browser_cookie3.chrome(domain_name='vk.com'))
+        cookies = dict_from_cookiejar(browser_cookie3.load(domain_name='vk.com'))
         logger.info('В работе утилиты будут использованы файлы 🍪')
     else:
         cookies = None
