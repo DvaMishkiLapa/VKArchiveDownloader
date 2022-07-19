@@ -90,7 +90,7 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: st
     - `doc`: паттерн для поиска ссылок в документах
     `cookies` куки для `aiohttp.ClientResponse`
     '''
-    async with session.get(url, timeout=5, cookies=cookies) as response:
+    async with session.get(url, timeout=15, cookies=cookies) as response:
         assert response.status == 200, f'Response status: {response.status}'
         if 'text/html' in response.headers['content-type']:
             soup = BeautifulSoup(await response.text(), 'html.parser')
@@ -160,7 +160,7 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
             return {'url': url, 'file_info': 'dns_shop_link'}
 
         async with sema, aiohttp.ClientSession(headers={'Accept-Language': 'ru'}) as session:
-            async with session.get(url, timeout=30) as response:
+            async with session.get(url, timeout=45) as response:
                 assert response.status == 200, f'Response status: {response.status}'
                 if any(t in response.headers['content-type'] for t in ('image', 'audio')):
                     response_info = get_response_info(response.headers['content-type'])
