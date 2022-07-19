@@ -256,8 +256,10 @@ async def main():
     logger.info(f'⌛ создания файла JSON с информацией о ссылках: {datetime.now() - first_start}')
     for folder in obj.link_info.keys():
         tools.create_folder(join(output_folder, folder))
-    # with open(join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
-    #     f.write(json.dumps(obj.link_info, indent=4, ensure_ascii=False))
+
+    if 'DEBUG' in log_level:
+        with open(join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
+            f.write(json.dumps(obj.link_info, indent=4, ensure_ascii=False))
 
     result = {}
     full_count = 0
