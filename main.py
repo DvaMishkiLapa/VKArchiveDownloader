@@ -112,27 +112,29 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
     '''
     result = {}
     full_count = 0
-    path_for_create = join(output_folder, folder)
-    tools.create_folder(path_for_create)
-    logger.debug(f'Создана папка по пути {path_for_create}')
-    result = {}
-    tasks = [asyncio.ensure_future(
-        data_downloader.get_info(
-            url=v,
-            save_path=path_for_create,
-            file_name=info['links'].index(v),
-            sema=sema,
-            cookies=cookies
-        )
-    ) for v in info['links']]
-    count = len(tasks)
-    full_count += count
-    logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-    tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-    logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
-    for res in tasks_result:
-        file_info = result.setdefault(res['file_info'], [])
-        file_info.append(res['url'])
+    for albom, albom_info in info.items():
+        result[albom] = {}
+        logger.debug(f'Начата обработка 🔗 для {albom}')
+        path_for_create = join(output_folder, folder, albom)
+        tools.create_folder(path_for_create)
+        logger.debug(f'Создана папка по пути {path_for_create}')
+        tasks = [asyncio.ensure_future(
+            data_downloader.get_info(
+                url=v,
+                save_path=path_for_create,
+                file_name=albom_info['links'].index(v),
+                sema=sema,
+                cookies=cookies
+            )
+        ) for v in albom_info['links']]
+        count = len(tasks)
+        full_count += count
+        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+        logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+        for res in tasks_result:
+            file_info = result[albom].setdefault(res['file_info'], [])
+            file_info.append(res['url'])
     return result, full_count
 
 

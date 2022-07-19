@@ -58,7 +58,9 @@
         }
     },
     "photos": {
-        "Тип данных": ["Ссылки, связные с типом данных"]
+        "Имя альбома" {
+          "Тип данных": ["Ссылки, связные с типом данных"]
+        }
     },
     "likes_photo": {
         "not_parse": ["Ссылки, связные с типом данных"]
@@ -336,4 +338,4 @@ python main.py
 | [i7-8565U](https://ark.intel.com/content/www/us/en/ark/products/149091/intel-core-i78565u-processor-8m-cache-up-to-4-60-ghz.html) |                            ❌                            | Windows 11                                                                                 |         13753          |          -           |            -            |         -          | 1 мин. 56 сек. |  8 мин. 2 сек.  | 9 мин. 59 сек.  |
 | [i7-8565U](https://ark.intel.com/content/www/us/en/ark/products/149091/intel-core-i78565u-processor-8m-cache-up-to-4-60-ghz.html) |                            ❌                            | Manjaro Linux                                                                              |         13753          |          -           |            -            |         -          |    25 сек.     | 4 мин. 29 сек.  | 4 мин. 54 сек.  |
 | [Snapdragon 855](https://www.devicespecifications.com/ru/model/3bce4fca)                                                          |                            ❌                            | Android 12 + [Termux](https://termux.com/)                                                 |         13753          |          -           |            -            |         -          |    45 сек.     | 6 мин. 38 сек.  | 7 мин. 23 сек.  |
-| [Exynos 4412](https://www.devicespecifications.com/ru/model/1fc3284d)                                                             |                            ❌                            | [Ubuntu 15.10 (Linux Deploy)](https://github.com/meefik/linuxdeploy)                        |         13753          |          -           |            -            |         -          | 5 мин. 19 сек. | 23 мин. 1 сек.  | 28 мин. 20 сек. |
+| [Exynos 4412](https://www.devicespecifications.com/ru/model/1fc3284d)                                                             |                            ❌                            | [Ubuntu 15.10 (Linux Deploy)](https://github.com/meefik/linuxdeploy)                       |         13753          |          -           |            -            |         -          | 5 мин. 19 сек. | 23 мин. 1 сек.  | 28 мин. 20 сек. |
