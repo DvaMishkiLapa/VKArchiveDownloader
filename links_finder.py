@@ -2,8 +2,8 @@ import configparser
 from concurrent.futures import ProcessPoolExecutor
 from itertools import chain
 from os import cpu_count, listdir
-from os.path import basename, isdir, isfile, join, split, splitext
-from typing import Dict, List, Tuple
+from os.path import isdir, isfile, join, split, splitext
+from typing import Any, Callable, Dict, List, Tuple
 
 from bs4 import BeautifulSoup
 
@@ -66,22 +66,33 @@ class VKLinkFinder():
         self.link_info = self.__get_vk_attachments()
 
     @classmethod
-    def get_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
+    def get_messages_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
         '''
-        Возвращает все ссылки на вложения из `html` файла
+        Возвращает все ссылки на вложения из `html` файла сообщений
         `file_path`: путь до файла для чтения
         `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
         '''
         with open(file_path, encoding=vk_encoding) as f:
             try:
                 soup = BeautifulSoup(f.read(), 'html.parser')
-
-                # for link in messages
                 link_tags = soup.find_all('a', class_='attachment__link', href=str)
                 if link_tags:
                     return [tag['href'] for tag in link_tags]
+                return ''
+            except Exception as e:
+                logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
+                return ''
 
-                # for link profile photos
+    @classmethod
+    def get_photos_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
+        '''
+        Возвращает все ссылки на вложения из `html` файла фото профиля
+        `file_path`: путь до файла для чтения
+        `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
+        '''
+        with open(file_path, encoding=vk_encoding) as f:
+            try:
+                soup = BeautifulSoup(f.read(), 'html.parser')
                 link_tags = soup.find_all('img', src=str)
                 if link_tags:
                     result = []
@@ -90,8 +101,21 @@ class VKLinkFinder():
                         if 'http' in find_link:
                             result.append(find_link)
                     return result
+                return ''
+            except Exception as e:
+                logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
+                return ''
 
-                # for link in likes -> photo
+    @classmethod
+    def get_likes_or_doc_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
+        '''
+        Возвращает все ссылки на вложения из `html` файла лайкнутых фото профиля
+        `file_path`: путь до файла для чтения
+        `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
+        '''
+        with open(file_path, encoding=vk_encoding) as f:
+            try:
+                soup = BeautifulSoup(f.read(), 'html.parser')
                 link_tags = soup.find_all('a', href=str)
                 if link_tags:
                     result = []
@@ -100,7 +124,6 @@ class VKLinkFinder():
                         if 'vk.com' in find_link:
                             result.append(find_link)
                     return result
-
                 return ''
             except Exception as e:
                 logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
@@ -116,15 +139,16 @@ class VKLinkFinder():
         return [join(path, f) for f in listdir(path) if isfile(join(path, f)) and splitext(join(path, f))[1] in ext]
 
     @classmethod
-    def walk_directory(self, dir_path: str, core_count: int = 1) -> List[str]:
+    def walk_directory(self, dir_path: str, func_handler: Callable, core_count: int = 1) -> List[Any]:
         '''
         Возвращает все вложения из папки
         `dir_path`: путь до папки
+        `func_handler`: функция-обработчки для файлов из `dir_path`
         `core_count`: Количество используемых потоков в `ProcessPoolExecutor`
         '''
         files = self.get_all_files_from_directory(dir_path, ['.html'])
         with ProcessPoolExecutor(core_count) as executor:
-            result = list(set(chain(*executor.map(self.get_attachment, files))))
+            result = list(set(chain(*executor.map(func_handler, files))))
         return result
 
     @classmethod
@@ -140,7 +164,7 @@ class VKLinkFinder():
         '''
         Находит имя человека, с которым велся диалог (или название диалога/беседы)
         Если имя не будет найдено, вернет `None`
-        path`: путь до папки диалога
+        `path`: путь до папки диалога
         `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
         '''
         with open(join(path, 'messages0.html'), 'r', encoding=vk_encoding) as f:
@@ -181,7 +205,7 @@ class VKLinkFinder():
                 dialog_type, dialog_id = self.get_dialog_type(path)
                 dialog_full_id = f'{dialog_type}{dialog_id}'
                 dialog_name = self.hook_dialog_name(path, self.vk_encoding)
-                find_links = self.walk_directory(path, self.core_count)
+                find_links = self.walk_directory(path, self.get_messages_attachment, self.core_count)
                 count_find_link = len(find_links)
                 mes_links += count_find_link
                 logger.info(f'=> Имя диалога: {dialog_name}')
@@ -200,7 +224,7 @@ class VKLinkFinder():
         if likes_photo_folder:
             path = join(self.archive_path, likes_photo_folder)
             logger.info(f'📁: {path}')
-            find_links = self.walk_directory(path, self.core_count)
+            find_links = self.walk_directory(path, self.get_likes_photo_attachment, self.core_count)
             count_find_link = len(find_links)
             likes_photo_links += count_find_link
             result['likes_photo'] = {
@@ -216,7 +240,7 @@ class VKLinkFinder():
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, profile_photo_folder))
             for path in dirs:
                 logger.info(f'📁: {path}')
-                find_links = self.walk_directory(path, self.core_count)
+                find_links = self.walk_directory(path, self.get_photos_attachment, self.core_count)
                 count_find_link = len(find_links)
                 profile_photos_links += count_find_link
                 logger.info(f'=> Количество найденных 🔗: {count_find_link}')
@@ -231,7 +255,7 @@ class VKLinkFinder():
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, documents_folder))
             path = join(self.archive_path, documents_folder)
             logger.info(f'📁: {path}')
-            find_links = self.walk_directory(path, self.core_count)
+            find_links = self.walk_directory(path, self.get_likes_or_doc_attachment, self.core_count)
             count_find_link = len(find_links)
             documents_links += count_find_link
             result['profile'] = {
