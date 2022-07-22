@@ -184,7 +184,7 @@ async def main():
         logger.error('Конфигурационный файл не найден')
         exit()
 
-    if config['main_parameters'].get('use_coockie', False):
+    if config['main_parameters'].getboolean('use_coockie', False):
         cookies = dict_from_cookiejar(browser_cookie3.load(domain_name='vk.com'))
         logger.info('В работе утилиты будут использованы файлы 🍪')
     else:
@@ -251,7 +251,8 @@ async def main():
     if delete_folders:
         logger.info(f'📁 {output_folder} будет отчищена перед началом работы 🗑️')
         tools.clear_folder(output_folder)
-    logger.info(f'📁 {output_folder} очищена 🗑️')
+    else:
+        logger.info(f'📁 {output_folder} останется нетронутой')
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
     first_start = datetime.now()
     obj = VKLinkFinder(archive_path, folder_names=folder_keys, core_count=core_count)
