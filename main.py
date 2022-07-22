@@ -247,8 +247,10 @@ async def main():
         if folder_info[key]['folder'] is not None:
             folder_keys.update({key: value['folder']})
 
-    tools.clear_jsons(output_folder)
-    tools.clear_folder(output_folder)
+    delete_folders = config['main_parameters'].getboolean('delete_folders', False)
+    if delete_folders:
+        logger.info(f'📁 {output_folder} будет отчищена перед началом работы 🗑️')
+        tools.clear_folder(output_folder)
     logger.info(f'📁 {output_folder} очищена 🗑️')
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
     first_start = datetime.now()
