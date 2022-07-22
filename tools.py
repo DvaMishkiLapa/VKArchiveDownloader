@@ -1,5 +1,5 @@
 import os
-from os.path import join
+from os.path import join, isdir
 from shutil import rmtree
 from typing import Generator
 
@@ -40,7 +40,9 @@ def clear_folder(path: str) -> None:
     `path`: путь для удаления папок и файлов
     '''
     for f in listdir_nohidden(path):
-        rmtree(join(path, f))
+        folder_path = join(path, f)
+        if isdir(folder_path):
+            rmtree(folder_path)
 
 
 def clear_jsons(path: str) -> None:
@@ -49,5 +51,5 @@ def clear_jsons(path: str) -> None:
     `path`: путь для удаления папок и файлов
     '''
     for f in listdir_nohidden(path):
-        if 'json' in f:
+        if '.json' in f:
             os.remove(join(path, f))
