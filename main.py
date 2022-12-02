@@ -1,10 +1,10 @@
 import asyncio
-import configparser
-import json
 import os
-import traceback
+from configparser import ConfigParser
 from datetime import datetime
+from json import dumps
 from os.path import join
+from traceback import format_exc
 from typing import Any, Dict, Tuple
 
 import browser_cookie3
@@ -18,7 +18,7 @@ from logger import create_logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-config = configparser.ConfigParser()
+config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
 if config_read is None:
     logger = create_logger('logs/vk_parser.log', 'main', 'DEBUG')
@@ -262,7 +262,7 @@ async def main():
 
     if 'DEBUG' in log_level:
         with open(join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
-            f.write(json.dumps(obj.link_info, indent=4, ensure_ascii=False))
+            f.write(dumps(obj.link_info, indent=4, ensure_ascii=False))
 
     result = {}
     full_count = 0
@@ -285,7 +285,7 @@ async def main():
     logger.info(f'Количество обработанных 🔗: {full_count}')
     logger.info(f'⌛ обработки 🔗 и скачивания возможных: {full_end - start}')
     with open(join(output_folder, 'links_info.json'), 'w', encoding='utf8') as f:
-        f.write(json.dumps(result, indent=4, ensure_ascii=False))
+        f.write(dumps(result, indent=4, ensure_ascii=False))
     logger.info(f'Общее ⌛ обработки архива VK: {full_end - first_start}')
 
 
@@ -295,4 +295,4 @@ if __name__ == '__main__':
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.run(main())
     except Exception:
-        logger.critical(traceback.format_exc())
+        logger.critical(format_exc())

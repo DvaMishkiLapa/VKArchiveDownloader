@@ -1,7 +1,7 @@
 import asyncio
-import configparser
-import traceback
+from configparser import ConfigParser
 from os.path import join
+from traceback import format_exc
 from typing import Coroutine, Dict
 
 import aiofiles
@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 import tools
 from logger import create_logger
 
-config = configparser.ConfigParser()
+config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
 if config_read is None:
     logger = create_logger('logs/vk_parser.log', 'data_downloader', 'DEBUG')
@@ -200,5 +200,5 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
             return {'url': url, 'file_info': 'not_parse'}
     except Exception as e:
         logger.error(f'Ошибка 🔗 {url}: {e}')
-        logger.debug(traceback.format_exc())
+        logger.debug(format_exc())
         return {'url': url, 'file_info': 'error'}

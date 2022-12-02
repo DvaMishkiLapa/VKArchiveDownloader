@@ -1,5 +1,5 @@
-import configparser
 from concurrent.futures import ProcessPoolExecutor
+from configparser import ConfigParser
 from itertools import chain
 from os import cpu_count, listdir
 from os.path import isdir, isfile, join, split, splitext
@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 from logger import create_logger
 
-config = configparser.ConfigParser()
+config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
 if config_read is None:
     logger = create_logger('logs/vk_parser.log', 'links_finder', 'DEBUG')

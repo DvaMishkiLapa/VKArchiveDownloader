@@ -1,5 +1,5 @@
-import os
-from os.path import join, isdir
+from os import listdir, makedirs, remove
+from os.path import exists, isdir, join
 from shutil import rmtree
 from typing import Generator
 
@@ -20,8 +20,8 @@ def create_folder(path: str) -> None:
     Создает все папки по пути из `path`
     `path`: путь для создания папок и подпапок
     '''
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if not exists(path):
+        makedirs(path)
 
 
 def listdir_nohidden(path: str) -> Generator:
@@ -29,7 +29,7 @@ def listdir_nohidden(path: str) -> Generator:
     Возвращает не скрытые файлы и папки по пути `path`
     `path`: путь до необходимой папки
     '''
-    for f in os.listdir(path):
+    for f in listdir(path):
         if not f.startswith('.'):
             yield f
 
@@ -52,4 +52,4 @@ def clear_jsons(path: str) -> None:
     '''
     for f in listdir_nohidden(path):
         if '.json' in f:
-            os.remove(join(path, f))
+            remove(join(path, f))
