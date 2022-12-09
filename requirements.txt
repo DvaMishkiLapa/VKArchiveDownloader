@@ -5,7 +5,7 @@ async-timeout==4.0.2
 attrs==22.1.0
 beautifulsoup4==4.11.1
 browser-cookie3==0.16.2
-certifi==2022.9.24
+certifi==2022.12.7
 cffi==1.15.1
 charset-normalizer==2.1.1
 cryptography==38.0.4
