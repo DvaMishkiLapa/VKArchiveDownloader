@@ -3,7 +3,7 @@ import os
 from configparser import ConfigParser
 from datetime import datetime
 from json import dumps
-from os.path import join
+from os.path import isdir, join
 from traceback import format_exc
 from typing import Any, Dict, Tuple
 
@@ -138,6 +138,28 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
     return result, full_count
 
 
+def folder_check(
+    folder_name: str,
+    human_folder_name: str,
+    archive_path: str
+) -> str | None:
+    '''
+    Проверка папки с данными из архива на указание парсинга и существование, отправляя логи о результате
+    `folder_name`: имя папки для проверки
+    `human_folder_name`: описательное имя папки в винительном падеже (кого? что?)
+    `archive_path`: путь до папки архива
+    '''
+    folder = config['folder_parameters'].get(folder_name)
+    if folder is None:
+        logger.info(f'Парсинг {human_folder_name} будет пропущен')
+    elif isdir(join(archive_path, folder)):
+        logger.info(f'Парсинг {human_folder_name} будет выполнен из 📁: {folder}')
+    else:
+        logger.warning(f'📁 для парсинга {human_folder_name} указана, но не найдена: {folder}')
+        folder = None
+    return folder
+
+
 async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Tuple[Any]:
     '''
     Обработчик данных о профиле (скорее, о документах профиля)
@@ -203,26 +225,27 @@ async def main():
 
     archive_path = config['folder_parameters'].get('vk_archive_folder', 'Archive')
     logger.info(f'📁 архива VK: {archive_path}')
-    messages_folder = config['folder_parameters'].get('messages_folder')
-    if messages_folder is None:
-        logger.info('Парсинг сообщений будет пропущен')
-    else:
-        logger.info(f'Парсинг сообщений будет выполнен из 📁: {messages_folder}')
-    likes_folder = config['folder_parameters'].get('likes_folder')
-    if likes_folder is None:
-        logger.info('Парсинг лайкнутых фото будет пропущен')
-    else:
-        logger.info(f'Парсинг лайкнутых фото будет выполнен из 📁: {likes_folder}')
-    photos_folder = config['folder_parameters'].get('photos_folder')
-    if photos_folder is None:
-        logger.info('Парсинг фото профиля будет пропущен')
-    else:
-        logger.info(f'Парсинг фото профиля будет выполнен из 📁: {photos_folder}')
-    profile_folder = config['folder_parameters'].get('profile_folder')
-    if profile_folder is None:
-        logger.info('Парсинг документов профиля будет пропущен')
-    else:
-        logger.info(f'Парсинг документов профиля будет выполнен из 📁: {profile_folder}')
+
+    messages_folder = folder_check(
+        folder_name='messages_folder',
+        human_folder_name='сообщений',
+        archive_path=archive_path
+    )
+    likes_folder = folder_check(
+        folder_name='likes_folder',
+        human_folder_name='лайкнутых фото',
+        archive_path=archive_path
+    )
+    photos_folder = folder_check(
+        folder_name='photos_folder',
+        human_folder_name='фото профиля',
+        archive_path=archive_path
+    )
+    profile_folder = folder_check(
+        folder_name='profile_folder',
+        human_folder_name='документов профиля',
+        archive_path=archive_path
+    )
 
     folder_info = {
         'messages': {
