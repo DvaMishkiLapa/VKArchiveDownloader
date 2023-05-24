@@ -3,6 +3,7 @@ import os
 from configparser import ConfigParser
 from datetime import datetime
 from json import dumps
+from multiprocessing import freeze_support
 from os.path import isdir, join
 from traceback import format_exc
 from typing import Any, Dict, Tuple
@@ -313,6 +314,7 @@ async def main():
 
 
 if __name__ == '__main__':
+    freeze_support()
     try:
         if 'nt' in os.name:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
