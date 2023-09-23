@@ -2,17 +2,17 @@ from os import listdir, makedirs, remove
 from os.path import exists, isdir, join
 from shutil import rmtree
 from typing import Generator
+import re
 
 
-def clear_spec(dstr: str, charters: str = '\\/:*?"<>|') -> str:
+def clear_charters_by_pattern(input_str: str, pattern: str = r'[^0-9a-zA-Zа-яА-ЯёЁ.]+', repl_char: str = '_') -> str:
     '''
-    Удаляет символы `charters` из строки `dstr`
-    `dstr`: строка для очищения
-    `charters`: символы, которые нужно удалить из `dstr`
+    Удаляет символы, удоволетворяющие регулярному выражению `pattern` из строки `input_str` на символ `repl_char`
+    `input_str`: строка для очищения
+    `pattern`: регулярное выражение для поиска удаляемых символов
+    `repl_char`: символ, на который будет заменяется символ
     '''
-    for x in charters:
-        dstr = dstr.replace(x, '')
-    return dstr
+    return re.sub(pattern, repl_char, input_str)
 
 
 def create_folder(path: str) -> None:

@@ -45,7 +45,7 @@ async def messages_handler(info: Dict[str, Any], folder: str, sema: asyncio.Boun
     for id, id_info in info.items():
         logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
         result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
-        dialog_name_id = f'{tools.clear_spec(id_info["name"])}_{id}'
+        dialog_name_id = f'{tools.clear_charters_by_pattern(id_info["name"])}_{id}'
         path_for_create = join(output_folder, folder, dialog_name_id)
         tools.create_folder(path_for_create)
         logger.debug(f'Создана папка по пути {path_for_create}')
@@ -116,7 +116,7 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
     for albom, albom_info in info.items():
         result[albom] = {}
         logger.debug(f'Начата обработка 🔗 для {albom}')
-        path_for_create = join(output_folder, folder, albom)
+        path_for_create = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
         tools.create_folder(path_for_create)
         logger.debug(f'Создана папка по пути {path_for_create}')
         tasks = [asyncio.ensure_future(
