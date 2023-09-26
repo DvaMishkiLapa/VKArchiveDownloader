@@ -2,3 +2,5 @@ aiofiles==23.2.1
 aiohttp==3.8.5
 beautifulsoup4==4.12.2
 browser-cookie3==0.19.1
+requests==2.31.0
+urllib3==2.0.5
