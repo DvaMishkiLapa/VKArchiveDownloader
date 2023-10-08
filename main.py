@@ -101,41 +101,47 @@ async def likes_photo_handler(info: Dict[str, Any], folder: str, sema: asyncio.B
     return result, full_count
 
 
-async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Tuple[Any]:
+async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
     '''
     Обработчик данных о фото профиля
     `info` сырые данные для обработчика о фото профиля из `VKLinkFinder`
     `folder`: имя папки для хранения файлов
     `sema`: семафор для асинхронного скачивания
     `cookies` cookies файлы авторизации VK
+    `save_by_date`: сохранять ли файлы в подпапки на основе даты
 
     Возвращает структурированные данные и количество обработанных ссылок
     '''
     result = {}
     full_count = 0
     for albom, albom_info in info.items():
-        result[albom] = {}
         logger.debug(f'Начата обработка 🔗 для {albom}')
-        path_for_create = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
-        tools.create_folder(path_for_create)
-        logger.debug(f'Создана папка по пути {path_for_create}')
-        tasks = [asyncio.ensure_future(
-            data_downloader.get_info(
-                url=v,
-                save_path=path_for_create,
-                file_name=albom_info['links'].index(v),
-                sema=sema,
-                cookies=cookies
-            )
-        ) for v in albom_info['links']]
-        count = len(tasks)
-        full_count += count
-        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-        logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
-        for res in tasks_result:
-            file_info = result[albom].setdefault(res['file_info'], [])
-            file_info.append(res['url'])
+        result[albom] = {}
+        for date, links in albom_info.items():
+            result[albom][date] = {}
+            if save_by_date:
+                path_for_create = join(output_folder, folder, tools.clear_charters_by_pattern(albom), date)
+            else:
+                path_for_create = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
+            tools.create_folder(path_for_create)
+            logger.debug(f'Создана папка по пути {path_for_create}')
+            tasks = [asyncio.ensure_future(
+                data_downloader.get_info(
+                    url=v,
+                    save_path=path_for_create,
+                    file_name=links.index(v),
+                    sema=sema,
+                    cookies=cookies
+                )
+            ) for v in links]
+            count = len(tasks)
+            full_count += count
+            logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+            tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+            logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+            for res in tasks_result:
+                file_info = result[albom][date].setdefault(res['file_info'], [])
+                file_info.append(res['url'])
     return result, full_count
 
 
@@ -271,12 +277,19 @@ async def main():
         if folder_info[key]['folder'] is not None:
             folder_keys.update({key: value['folder']})
 
-    delete_folders = config['main_parameters'].getboolean('delete_folders', False)
-    if delete_folders:
+    delete_output_folder = config['main_parameters'].getboolean('delete_output_folder', False)
+    if delete_output_folder:
         logger.info(f'📁 {output_folder} будет отчищена перед началом работы 🗑️')
         tools.clear_folder(output_folder)
     else:
         logger.info(f'📁 {output_folder} останется нетронутой')
+
+    save_by_date = config['main_parameters'].getboolean('save_by_date', False)
+    if save_by_date:
+        logger.info('Файлы будут сохранены в подпапки, на основе информации о дате')
+    else:
+        logger.info('Сохранение файлов в подпапки на основе информации о дате не будет использоваться')
+
     logger.info('🔥 Начат процесс получения данных из архива VK... 🔥')
     first_start = datetime.now()
     obj = VKLinkFinder(archive_path, folder_names=folder_keys, core_count=core_count)
@@ -299,7 +312,8 @@ async def main():
                 info=info,
                 folder=folder_info[data_type]['folder'],
                 sema=sema,
-                cookies=cookies
+                cookies=cookies,
+                save_by_date=save_by_date
             )
         )
         result[data_type] = res_handler

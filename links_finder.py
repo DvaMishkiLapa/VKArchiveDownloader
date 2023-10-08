@@ -94,14 +94,17 @@ class VKLinkFinder():
             try:
                 html_content = f.read()
                 soup = BeautifulSoup(html_content, 'html.parser')
-                link_tags = soup.find_all('img', src=str)
-                if link_tags:
+                items = soup.find_all('div', class_='item')
+                if items:
                     albom_name = self.hook_albom_name(html_content)
-                    result = {albom_name: []}
-                    for link in link_tags:
-                        find_link = link['src']
+                    result = {albom_name: {}}
+                    for item in items:
+                        find_link = item.find('img')['src']
                         if 'http' in find_link:
-                            result[albom_name].append(find_link)
+                            date = item.find('div', class_='clear_fix').text.strip()
+                            date = '_'.join(date.split(' ')[:-2])
+                            links_box = result[albom_name].setdefault(date, [])
+                            links_box.append(find_link)
                     return result
                 return ''
             except Exception as e:
@@ -252,18 +255,14 @@ class VKLinkFinder():
             result['photos'] = {}
             path = join(self.archive_path, profile_photo_folder)
             logger.info(f'📁: {path}')
-            unpack_result = {}
             find_links = list(self.walk_directory(path, self.get_photos_attachment, self.core_count))
-            for item in find_links:
-                if item:
-                    link_storage = unpack_result.setdefault(*item, [])
-                    link_storage.extend(*item.values())
-            count_find_link = sum(len(items) for items in unpack_result.values())
-            profile_photos_links += count_find_link
-            for albom, links in unpack_result.items():
-                result['photos'][albom] = {
-                    'links': links
-                }
+            profile_photos_links = 0
+            for el in find_links:
+                if el:
+                    for albom, date_info in el.items():
+                        date_storage = result['photos'].setdefault(albom, {})
+                        date_storage.update(date_info)
+                        profile_photos_links += sum(len(items) for items in date_info.values())
             logger.info(f'🔍 Количество найденных 🔗 в {profile_photo_folder}: {profile_photos_links}')
             all_find_links += profile_photos_links
 
