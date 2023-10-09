@@ -30,7 +30,7 @@ else:
 output_folder = 'output'
 
 
-async def messages_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Tuple[Any]:
+async def messages_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
     '''
     Обработчик данных о сообщениях
     `info` сырые данные для обработчика о сообщениях из `VKLinkFinder`
@@ -43,33 +43,42 @@ async def messages_handler(info: Dict[str, Any], folder: str, sema: asyncio.Boun
     result = {}
     full_count = 0
     for id, id_info in info.items():
+        count_by_id = 0
         logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
         result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
         dialog_name_id = f'{tools.clear_charters_by_pattern(id_info["name"])}_{id}'
-        path_for_create = join(output_folder, folder, dialog_name_id)
-        tools.create_folder(path_for_create)
-        logger.debug(f'Создана папка по пути {path_for_create}')
-        tasks = [asyncio.ensure_future(
-            data_downloader.get_info(
-                url=v,
-                save_path=path_for_create,
-                file_name=id_info['links'].index(v),
-                sema=sema,
-                cookies=cookies
-            )
-        ) for v in id_info['links']]
-        count = len(tasks)
-        full_count += count
-        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-        logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
-        for res in tasks_result:
-            file_info = result[id].setdefault(res['file_info'], [])
-            file_info.append(res['url'])
+        path_for_id = join(output_folder, folder, dialog_name_id)
+        tools.create_folder(path_for_id)
+        logger.debug(f'Создана папка по пути {path_for_id}')
+        for date, links in id_info['links'].items():
+            if save_by_date:
+                storage = result[id].setdefault(date, {})
+                path_for_create = join(path_for_id, date)
+                tools.create_folder(path_for_create)
+                logger.debug(f'Создана папка по пути {path_for_create}')
+            else:
+                storage = result[id]
+                path_for_create = path_for_id
+            tasks = [asyncio.ensure_future(
+                data_downloader.get_info(
+                    url=v,
+                    save_path=path_for_create,
+                    file_name=links.index(v),
+                    sema=sema,
+                    cookies=cookies
+                )
+            ) for v in links]
+            full_count += len(tasks)
+            tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+            count_by_id += len(tasks_result)
+            for res in tasks_result:
+                file_info = storage.setdefault(res['file_info'], [])
+                file_info.append(res['url'])
+        logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_id}')
     return result, full_count
 
 
-async def likes_photo_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Tuple[Any]:
+async def likes_photo_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
     '''
     Обработчик данных о лайкнутых фото
     `info` сырые данные для обработчика о лайкнутых фото из `VKLinkFinder`
@@ -117,14 +126,19 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
     for albom, albom_info in info.items():
         logger.debug(f'Начата обработка 🔗 для {albom}')
         result[albom] = {}
+        count_by_albom = 0
+        path_for_albom = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
+        tools.create_folder(path_for_albom)
+        logger.debug(f'Создана папка по пути {path_for_albom}')
         for date, links in albom_info.items():
-            result[albom][date] = {}
             if save_by_date:
-                path_for_create = join(output_folder, folder, tools.clear_charters_by_pattern(albom), date)
+                storage = result[albom].setdefault(date, {})
+                path_for_create = join(path_for_albom, date)
+                tools.create_folder(path_for_create)
+                logger.debug(f'Создана папка по пути {path_for_create}')
             else:
-                path_for_create = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
-            tools.create_folder(path_for_create)
-            logger.debug(f'Создана папка по пути {path_for_create}')
+                storage = result[albom]
+                path_for_create = path_for_albom
             tasks = [asyncio.ensure_future(
                 data_downloader.get_info(
                     url=v,
@@ -134,14 +148,13 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
                     cookies=cookies
                 )
             ) for v in links]
-            count = len(tasks)
-            full_count += count
-            logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+            full_count += len(tasks)
             tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-            logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
+            count_by_albom += len(tasks_result)
             for res in tasks_result:
-                file_info = result[albom][date].setdefault(res['file_info'], [])
+                file_info = storage.setdefault(res['file_info'], [])
                 file_info.append(res['url'])
+        logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_albom}')
     return result, full_count
 
 

@@ -66,7 +66,7 @@ class VKLinkFinder():
         self.link_info = self.__get_vk_attachments()
 
     @classmethod
-    def get_messages_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
+    def get_messages_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> Dict[str, List[str]] | None:
         '''
         Возвращает все ссылки на вложения из `html` файла сообщений
         `file_path`: путь до файла для чтения
@@ -74,10 +74,18 @@ class VKLinkFinder():
         '''
         with open(file_path, encoding=vk_encoding) as f:
             try:
+                messages_info = {}
                 soup = BeautifulSoup(f.read(), 'html.parser')
-                link_tags = soup.find_all('a', class_='attachment__link', href=str)
-                if link_tags:
-                    return [tag['href'] for tag in link_tags]
+                messages = soup.find_all('div', class_='item__main')
+                if messages:
+                    for mes in messages:
+                        link = mes.find('a', class_='attachment__link')
+                        if link:
+                            date = mes.find('div', class_='message__header').text.strip()
+                            date = '_'.join(date.replace('\n', ' ').split(',')[1].split(' ')[1:4])
+                            link_storage = messages_info.setdefault(date, [])
+                            link_storage.append(link['href'])
+                    return messages_info
                 return ''
             except Exception as e:
                 logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
@@ -221,16 +229,20 @@ class VKLinkFinder():
                 dialog_type, dialog_id = self.get_dialog_type(path)
                 dialog_full_id = f'{dialog_type}{dialog_id}'
                 dialog_name = self.hook_dialog_name(path, self.vk_encoding)
-                find_links = list(set(chain(*self.walk_directory(path, self.get_messages_attachment, self.core_count))))
-                count_find_link = len(find_links)
-                mes_links += count_find_link
+                find_links = list(self.walk_directory(path, self.get_messages_attachment, self.core_count))
                 logger.info(f'=> Имя диалога: {dialog_name}')
                 logger.info(f'=> 🆔 диалога: {dialog_full_id}')
-                logger.info(f'=> Количество найденных 🔗: {count_find_link}')
+                all_links = {}
+                for el in find_links:
+                    if el:
+                        for date, links in el.items():
+                            links_storage = all_links.setdefault(date, [])
+                            links_storage.extend(links)
+                            mes_links += len(links)
                 result['messages'][dialog_id] = {
                     'name': dialog_name,
                     'dialog_link': f'{self.vk_url}{dialog_full_id}',
-                    'links': find_links
+                    'links': all_links
                 }
             logger.info(f'🔍 Количество найденных 🔗 в {mes_folder}: {mes_links}')
             all_find_links += mes_links
@@ -256,7 +268,6 @@ class VKLinkFinder():
             path = join(self.archive_path, profile_photo_folder)
             logger.info(f'📁: {path}')
             find_links = list(self.walk_directory(path, self.get_photos_attachment, self.core_count))
-            profile_photos_links = 0
             for el in find_links:
                 if el:
                     for albom, date_info in el.items():
