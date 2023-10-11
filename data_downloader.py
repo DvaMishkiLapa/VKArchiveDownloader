@@ -198,6 +198,10 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                     return {'url': str(response.url), 'file_info': response_info['full_type_info']}
 
             return {'url': url, 'file_info': 'not_parse'}
+    except asyncio.TimeoutError as e:
+        logger.error(f'Ошибка 🔗 {url}: тайм-аут скачивания')
+        logger.debug(format_exc())
+        return {'url': url, 'file_info': 'timeout_error'}
     except Exception as e:
         logger.error(f'Ошибка 🔗 {url}: {e}')
         logger.debug(format_exc())

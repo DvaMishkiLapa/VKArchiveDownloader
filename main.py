@@ -239,9 +239,13 @@ async def main():
     else:
         logger.info('Используемое количество потоков будет определено автоматически 🚀')
 
-    semaphore = int(config['main_parameters'].get('semaphore', 75))
-    logger.info(f'Количество одновременных скачиваний файлов: {semaphore} 🚦')
-    sema = asyncio.BoundedSemaphore(semaphore)
+    semaphore_small = int(config['main_parameters'].get('semaphore_small', 75))
+    logger.info(f'Количество одновременных скачиваний файлов малого размера: {semaphore_small} 🚦')
+    sema_small = asyncio.BoundedSemaphore(semaphore_small)
+
+    semaphore_big = int(config['main_parameters'].get('semaphore_big', 10))
+    logger.info(f'Количество одновременных скачиваний файлов большого размера: {semaphore_big} 🚦')
+    sema_big = asyncio.BoundedSemaphore(semaphore_big)
 
     archive_path = config['folder_parameters'].get('vk_archive_folder', 'Archive')
     logger.info(f'📁 архива VK: {archive_path}')
@@ -270,19 +274,23 @@ async def main():
     folder_info = {
         'messages': {
             'folder': messages_folder,
-            'handler': messages_handler
+            'handler': messages_handler,
+            'semaphore': sema_small
         },
         'likes_photo': {
             'folder': likes_folder,
-            'handler': likes_photo_handler
+            'handler': likes_photo_handler,
+            'semaphore': sema_small
         },
         'photos': {
             'folder': photos_folder,
-            'handler': profile_photos_handler
+            'handler': profile_photos_handler,
+            'semaphore': sema_small
         },
         'profile': {
             'folder': profile_folder,
-            'handler': profile_handler
+            'handler': profile_handler,
+            'semaphore': sema_big
         }
     }
     folder_keys = {}
@@ -324,7 +332,7 @@ async def main():
             coroutine_handler(
                 info=info,
                 folder=folder_info[data_type]['folder'],
-                sema=sema,
+                sema=folder_info[data_type]['semaphore'],
                 cookies=cookies,
                 save_by_date=save_by_date
             )
