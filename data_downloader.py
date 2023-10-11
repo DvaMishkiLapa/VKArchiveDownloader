@@ -90,15 +90,17 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: st
     - `doc`: паттерн для поиска ссылок в документах
     `cookies` куки для `aiohttp.ClientResponse`
     '''
-    async with session.get(url, timeout=15, cookies=cookies) as response:
-        assert response.status == 200, f'Response status: {response.status}'
-        if 'text/html' in response.headers['content-type']:
-            soup = BeautifulSoup(await response.text(), 'html.parser')
-            assert check_vk_title_error(soup), 'Ошибка доступа к документу'
-            if 'doc' in pattern:
-                for t in ['img', 'iframe']:
-                    if soup.find(t) is not None:
-                        return soup.find(t).get('src')
+    async with session.get(url, timeout=60, cookies=cookies) as response:
+        if 'doc' in pattern:
+            doc_url_pattern = 'docUrl":"'
+            doc_buy_pattern = '","docBuyLink'
+            assert response.status == 200, f'Response status: {response.status}'
+            if 'text/html' in response.headers['content-type']:
+                text = await response.text()
+                assert not '<title>Ошибка</title>' in text, 'Ошибка доступа к документу'
+                first = text.find(doc_url_pattern)
+                second = text.find(doc_buy_pattern)
+                return text[first+len(doc_url_pattern):second].replace('\/', '/')
         redirect_url = str(response.url)
         if redirect_url != url:
             return redirect_url
