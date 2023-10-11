@@ -114,8 +114,12 @@ async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> 
     `path`: путь, куда будет сохранен файл
     `name`: имя сохраняемого файла
     '''
+    block_size = 16384
     async with aiofiles.open(join(path, name), 'wb') as f:
-        async for data in response.content.iter_any():
+        while True:
+            data = await response.content.read(block_size)
+            if not data:
+                break
             await f.write(data)
 
 
