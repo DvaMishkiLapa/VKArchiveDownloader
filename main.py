@@ -180,7 +180,7 @@ def folder_check(
     return folder
 
 
-async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Tuple[Any]:
+async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
     '''
     Обработчик данных о профиле (скорее, о документах профиля)
     `info` сырые данные для обработчика о профиле `VKLinkFinder`
