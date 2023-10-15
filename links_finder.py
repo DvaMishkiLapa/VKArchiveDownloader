@@ -248,14 +248,14 @@ class VKLinkFinder():
             all_find_links += mes_links
 
         likes_photo_links = 0
-        likes_photo_folder = self.folder_names.get('likes_photo', False)
+        likes_photo_folder = self.folder_names.get('likes/photo', False)
         if likes_photo_folder:
             path = join(self.archive_path, likes_photo_folder)
             logger.info(f'📁: {path}')
             find_links = list(set(chain(*self.walk_directory(path, self.get_likes_or_doc_attachment, self.core_count))))
             count_find_link = len(find_links)
             likes_photo_links += count_find_link
-            result['likes_photo'] = {
+            result['likes/photo'] = {
                 'links': find_links
             }
             logger.info(f'🔍 Количество найденных 🔗 в {likes_photo_folder}: {likes_photo_links}')

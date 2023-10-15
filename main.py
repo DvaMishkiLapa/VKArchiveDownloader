@@ -277,10 +277,10 @@ async def main():
             'handler': messages_handler,
             'semaphore': sema_small
         },
-        'likes_photo': {
+        'likes/photo': {
             'folder': likes_folder,
             'handler': likes_photo_handler,
-            'semaphore': sema_small
+            'semaphore': sema_big
         },
         'photos': {
             'folder': photos_folder,
