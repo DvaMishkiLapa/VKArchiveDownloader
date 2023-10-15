@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 import tools
 from logger import create_logger
+from latest_user_agents import get_random_user_agent
 
 config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
@@ -165,7 +166,12 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
         elif 'dns-shop.ru' in url:
             return {'url': url, 'file_info': 'dns_shop_link'}
 
-        async with sema, aiohttp.ClientSession(headers={'Accept-Language': 'ru'}) as session:
+        headers = {
+            'Accept-Language': 'ru',
+            'User-Agent': get_random_user_agent()
+        }
+
+        async with sema, aiohttp.ClientSession(headers=headers) as session:
             async with session.get(url, timeout=45) as response:
                 assert response.status == 200, f'Response status: {response.status}'
                 if any(t in response.headers['content-type'] for t in ('image', 'audio')):
