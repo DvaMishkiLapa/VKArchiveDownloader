@@ -128,7 +128,37 @@ class VKLinkFinder():
                 return ''
 
     @classmethod
-    def get_likes_or_doc_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
+    def get_doc_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
+        '''
+        Возвращает все ссылки на вложения из `html` файла документов профиля
+        `file_path`: путь до файла для чтения
+        `vk_encoding`: Кодировка `.html` файлов VK. Обычно, `cp1251`
+        '''
+        with open(file_path, encoding=vk_encoding) as f:
+            try:
+                doc_info = {}
+                soup = BeautifulSoup(f.read(), 'html.parser')
+                items = soup.find_all('div', class_='item')
+                if items:
+                    for el in items:
+                        link = el.find('a', href=str)
+                        if link:
+                            date = el.find('div', class_='item__tertiary')
+                            if date:
+                                date = date.text.strip()
+                                date = '_'.join(date.replace('\n', ' ').split(' ')[0:3])
+                            else:
+                                date = 'no_date'
+                            link_storage = doc_info.setdefault(date, [])
+                            link_storage.append(link['href'])
+                    return doc_info
+                return ''
+            except Exception as e:
+                logger.error(f'Ошибка в файле {file_path}: {e}. Он будет пропущен.')
+                return ''
+
+    @classmethod
+    def get_likes_attachment(self, file_path: str, vk_encoding: str = 'cp1251') -> List[str] | None:
         '''
         Возвращает все ссылки на вложения из `html` файла лайкнутых фото профиля
         `file_path`: путь до файла для чтения
@@ -263,7 +293,7 @@ class VKLinkFinder():
         if likes_photo_folder:
             path = join(self.archive_path, likes_photo_folder)
             logger.info(f'📁: {path}')
-            find_links = list(set(chain(*self.walk_directory(path, self.get_likes_or_doc_attachment, self.core_count))))
+            find_links = list(set(chain(*self.walk_directory(path, self.get_likes_attachment, self.core_count))))
             count_find_link = len(find_links)
             likes_photo_links += count_find_link
             result['likes/photo'] = {
@@ -295,12 +325,13 @@ class VKLinkFinder():
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, documents_folder))
             path = join(self.archive_path, documents_folder, 'documents.html')
             logger.info(f'📁: {path}')
-            find_links = list(set(chain(*self.walk_directory(path, self.get_likes_or_doc_attachment, self.core_count))))
-            count_find_link = len(find_links)
-            documents_links += count_find_link
-            result['profile'] = {
-                'links': find_links
-            }
+            find_links = list(self.walk_directory(path, self.get_doc_attachment, self.core_count))
+            for el in find_links:
+                    if el:
+                        for date, links in el.items():
+                            links_storage = result['profile'].setdefault(date, [])
+                            links_storage.extend(links)
+                            documents_links += len(links)
             logger.info(f'🔍 Количество найденных 🔗 в {documents_folder}: {documents_links}')
             all_find_links += documents_links
 

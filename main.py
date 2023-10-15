@@ -170,30 +170,37 @@ async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.Bound
     '''
     result = {}
     full_count = 0
+    count_by_doc = 0
     info_type = 'documents'
-
     logger.debug(f'Начата обработка 🔗 для {info_type}')
-    path_for_create = join(output_folder, folder, info_type)
-    tools.create_folder(path_for_create)
-    logger.debug(f'Создана папка по пути {path_for_create}')
-    result[info_type] = {}
-    tasks = [asyncio.ensure_future(
-        data_downloader.get_info(
-            url=v,
-            save_path=path_for_create,
-            file_name=info['links'].index(v),
-            sema=sema,
-            cookies=cookies
-        )
-    ) for v in info['links']]
-    count = len(tasks)
-    full_count += count
-    logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-    tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-    logger.debug(f'Задачи на обработку 🔗 выполнены, количество валидных данных: {len(tasks_result)}')
-    for res in tasks_result:
-        file_info = result[info_type].setdefault(res['file_info'], [])
-        file_info.append(res['url'])
+    path_for_doc = join(output_folder, folder, info_type)
+    logger.debug(f'Создана папка по пути {path_for_doc}')
+    tools.create_folder(path_for_doc)
+    for date, links in info.items():
+        if save_by_date:
+            storage = result.setdefault(date, {})
+            path_for_create = join(path_for_doc, date)
+            tools.create_folder(path_for_create)
+            logger.debug(f'Создана папка по пути {path_for_create}')
+        else:
+            storage = result
+            path_for_create = path_for_doc
+        tasks = [asyncio.ensure_future(
+            data_downloader.get_info(
+                url=v,
+                save_path=path_for_create,
+                file_name=links.index(v),
+                sema=sema,
+                cookies=cookies
+            )
+        ) for v in links]
+        full_count += len(tasks)
+        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+        count_by_doc += len(tasks_result)
+        for res in tasks_result:
+            file_info = storage.setdefault(res['file_info'], [])
+            file_info.append(res['url'])
+    logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_doc}')
     return result, full_count
 
 
