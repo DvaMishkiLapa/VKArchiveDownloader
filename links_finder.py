@@ -154,12 +154,15 @@ class VKLinkFinder():
     @classmethod
     def walk_directory(self, dir_path: str, func_handler: Callable, core_count: int = 1) -> Iterator:
         '''
-        Возвращает все вложения из папки
+        Возвращает все вложения из папки. Если указан путь до файла, операция будет выполнена только с ним
         `dir_path`: путь до папки
         `func_handler`: функция-обработчки для файлов из `dir_path`
         `core_count`: Количество используемых потоков в `ProcessPoolExecutor`
         '''
-        files = self.get_all_files_from_directory(dir_path, ['.html'])
+        if isfile(dir_path):
+            files = [dir_path]
+        else:
+            files = self.get_all_files_from_directory(dir_path, ['.html'])
         with ProcessPoolExecutor(core_count) as executor:
             result = executor.map(func_handler, files)
         return result
@@ -282,7 +285,7 @@ class VKLinkFinder():
         if documents_folder:
             result['profile'] = {}
             dirs = self.get_all_dirs_from_directory(join(self.archive_path, documents_folder))
-            path = join(self.archive_path, documents_folder)
+            path = join(self.archive_path, documents_folder, 'documents.html')
             logger.info(f'📁: {path}')
             find_links = list(set(chain(*self.walk_directory(path, self.get_likes_or_doc_attachment, self.core_count))))
             count_find_link = len(find_links)
