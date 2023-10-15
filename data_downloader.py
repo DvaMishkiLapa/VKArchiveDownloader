@@ -112,6 +112,13 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: st
                 first = text.find(doc_url_pattern)
                 second = text.find(doc_buy_pattern)
                 return text[first+len(doc_url_pattern):second].replace('\/', '/')
+        elif 'photo' in pattern:
+            soup = BeautifulSoup(await response.text(), 'html.parser')
+            check = check_vk_title_error(soup)
+            assert not check, f'Ошибка доступа к фото: {check}'
+            link = soup.find('meta', attrs={'name': 'og:image:secure_url'})
+            if link:
+                return link['value']
         redirect_url = str(response.url)
         if redirect_url != url:
             return redirect_url
@@ -201,8 +208,13 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
                     return {'url': str(response.url), 'file_info': response_info['full_type_info']}
                 target_content_type = response.headers['content-type']
 
-            if 'text/html' in target_content_type and 'vk.com/doc' in url:
-                find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
+            if 'text/html' in target_content_type:
+                if 'vk.com/doc' in url:
+                    find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
+                elif 'vk.com/photo':
+                    find_res = await asyncio.create_task(find_link_by_url(session, url, 'photo', cookies))
+                if find_res == url:
+                    return {'url': find_res, 'file_info': 'not_parse'}
                 async with session.get(find_res, timeout=900) as response:
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
