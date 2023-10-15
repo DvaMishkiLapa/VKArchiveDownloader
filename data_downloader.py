@@ -20,6 +20,14 @@ else:
     log_level = config['main_parameters'].get('log_level', 'DEBUG')
     logger = create_logger('logs/vk_parser.log', 'data_downloader', log_level)
 
+error_titles = [
+    'Ошибка | ВКонтакте',
+    'Ошибка',
+    'Error | VK',
+    'Error'
+]
+
+error_titles_html = [f'<title>{x}</title>' for x in error_titles]
 
 def get_response_info(content_type: str) -> Dict[str, str]:
     '''
@@ -67,7 +75,7 @@ def get_file_name_by_link(link: str) -> str | None:
         return None
 
 
-def check_vk_title_error(soup: BeautifulSoup) -> bool:
+def check_vk_title_error(soup: BeautifulSoup) -> str | bool:
     '''
     Проверяет наличие ошибки доступа к содержимому VK
     `soup`: экземпляр `BeautifulSoup` для работы с `HTML` контентом
@@ -78,8 +86,10 @@ def check_vk_title_error(soup: BeautifulSoup) -> bool:
     '''
     mes = soup.find('div', class_='message_page_title')
     if mes is not None:
-        return False if 'Ошибка' in mes.text else True
-    return True
+        if any(ext in mes.text for ext in error_titles):
+            details = soup.find('div', class_='message_page_body').text.strip().split('\n')[0]
+            return details
+    return False
 
 
 async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: str, cookies=None) -> str:
@@ -98,7 +108,7 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: st
             assert response.status == 200, f'Response status: {response.status}'
             if 'text/html' in response.headers['content-type']:
                 text = await response.text()
-                assert not '<title>Ошибка</title>' in text, 'Ошибка доступа к документу'
+                assert not any(ext in text for ext in error_titles_html), 'Ошибка доступа к документу'
                 first = text.find(doc_url_pattern)
                 second = text.find(doc_buy_pattern)
                 return text[first+len(doc_url_pattern):second].replace('\/', '/')
