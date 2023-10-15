@@ -81,8 +81,12 @@ class VKLinkFinder():
                     for mes in messages:
                         link = mes.find('a', class_='attachment__link')
                         if link:
-                            date = mes.find('div', class_='message__header').text.strip()
-                            date = '_'.join(date.replace('\n', ' ').split(',')[1].split(' ')[1:4])
+                            date = mes.find('div', class_='message__header')
+                            if date:
+                                date = date.text.strip()
+                                date = '_'.join(date.replace('\n', ' ').split(',')[1].split(' ')[1:4])
+                            else:
+                                date = 'no_date'
                             link_storage = messages_info.setdefault(date, [])
                             link_storage.append(link['href'])
                     return messages_info
@@ -109,8 +113,12 @@ class VKLinkFinder():
                     for item in items:
                         find_link = item.find('img')['src']
                         if 'http' in find_link:
-                            date = item.find('div', class_='clear_fix').text.strip()
-                            date = '_'.join(date.split(' ')[:-2])
+                            date = item.find('div', class_='clear_fix')
+                            if date:
+                                date = date.text.strip()
+                                date = '_'.join(date.split(' ')[:-2])
+                            else:
+                                date = 'no_date'
                             links_box = result[albom_name].setdefault(date, [])
                             links_box.append(find_link)
                     return result

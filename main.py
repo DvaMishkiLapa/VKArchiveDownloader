@@ -158,28 +158,6 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
     return result, full_count
 
 
-def folder_check(
-    folder_name: str,
-    human_folder_name: str,
-    archive_path: str
-) -> str | None:
-    '''
-    Проверка папки с данными из архива на указание парсинга и существование, отправляя логи о результате
-    `folder_name`: имя папки для проверки
-    `human_folder_name`: описательное имя папки в винительном падеже (кого? что?)
-    `archive_path`: путь до папки архива
-    '''
-    folder = config['folder_parameters'].get(folder_name)
-    if folder is None:
-        logger.info(f'Парсинг {human_folder_name} будет пропущен')
-    elif isdir(join(archive_path, folder)):
-        logger.info(f'Парсинг {human_folder_name} будет выполнен из 📁: {folder}')
-    else:
-        logger.warning(f'📁 для парсинга {human_folder_name} указана, но не найдена: {folder}')
-        folder = None
-    return folder
-
-
 async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
     '''
     Обработчик данных о профиле (скорее, о документах профиля)
@@ -217,6 +195,28 @@ async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.Bound
         file_info = result[info_type].setdefault(res['file_info'], [])
         file_info.append(res['url'])
     return result, full_count
+
+
+def folder_check(
+    folder_name: str,
+    human_folder_name: str,
+    archive_path: str
+) -> str | None:
+    '''
+    Проверка папки с данными из архива на указание парсинга и существование, отправляя логи о результате
+    `folder_name`: имя папки для проверки
+    `human_folder_name`: описательное имя папки в винительном падеже (кого? что?)
+    `archive_path`: путь до папки архива
+    '''
+    folder = config['folder_parameters'].get(folder_name)
+    if folder is None:
+        logger.info(f'Парсинг {human_folder_name} будет пропущен')
+    elif isdir(join(archive_path, folder)):
+        logger.info(f'Парсинг {human_folder_name} будет выполнен из 📁: {folder}')
+    else:
+        logger.warning(f'📁 для парсинга {human_folder_name} указана, но не найдена: {folder}')
+        folder = None
+    return folder
 
 
 async def main():
