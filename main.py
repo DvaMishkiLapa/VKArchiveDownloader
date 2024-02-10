@@ -133,7 +133,7 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
         for date, links in albom_info.items():
             if save_by_date:
                 storage = result[albom].setdefault(date, {})
-                path_for_create = join(path_for_albom, date)
+                path_for_create = join(path_for_albom, tools.clear_charters_by_pattern(date))
                 tools.create_folder(path_for_create)
                 logger.debug(f'Создана папка по пути {path_for_create}')
             else:
