@@ -143,6 +143,37 @@ async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> 
             await f.write(data)
 
 
+def links_filter(url: str) -> Dict[str, str] | None:
+    if 'vk.com/video' in url:
+        return {'url': url, 'file_info': 'vk_video'}
+    elif 'vk.com/id' in url or 'vk.com/public' in url:
+        return {'url': url, 'file_info': 'vk_contact'}
+    elif 'vk.com/story' in url:
+        return {'url': url, 'file_info': 'vk_story'}
+    elif 'github.com' in url:
+        return {'url': url, 'file_info': 'github_link'}
+    elif 'aliexpress.com' in url:
+        return {'url': url, 'file_info': 'aliexpress_link'}
+    elif 'pastebin.com' in url:
+        return {'url': url, 'file_info': 'pastebin_link'}
+    elif 'drive.google.com' in url:
+        return {'url': url, 'file_info': 'gdrive_link'}
+    elif 'google.com' in url:
+        return {'url': url, 'file_info': 'google_link'}
+    elif 'wikipedia.org' in url:
+        return {'url': url, 'file_info': 'wikipedia_link'}
+    elif 'pornhub.com' in url:
+        return {'url': url, 'file_info': '🍓'}
+    elif 't.me' in url:
+        return {'url': url, 'file_info': 'telegram_contact'}
+    elif 'dns-shop.ru' in url:
+        return {'url': url, 'file_info': 'dns_shop_link'}
+    elif 'habr.com' in url:
+        return {'url': url, 'file_info': 'habr_link'}
+    elif 'vk.com/login' in url:
+        return {}
+
+
 async def get_info(
     url: str,
     save_path: str,
@@ -163,36 +194,14 @@ async def get_info(
     `url`: ссылка на файл или ресурс
     `save_path`: путь до папки, куда будет сохранен файл
     `file_name`: имя файла
-    `sema`: семафор для асинхронного скачивания
+    `session`: сессия ClientSession
     `cookies` куки для `aiohttp.ClientSession`
+    `sleep`: нужна ли задержка перед выполнением цикла, если да - какая в секундах
     '''
     try:
-        if 'vk.com/video' in url:
-            return {'url': url, 'file_info': 'vk_video'}
-        elif 'vk.com/id' in url or 'vk.com/public' in url:
-            return {'url': url, 'file_info': 'vk_contact'}
-        elif 'vk.com/story' in url:
-            return {'url': url, 'file_info': 'vk_story'}
-        elif 'github.com' in url:
-            return {'url': url, 'file_info': 'github_link'}
-        elif 'aliexpress.com' in url:
-            return {'url': url, 'file_info': 'aliexpress_link'}
-        elif 'pastebin.com' in url:
-            return {'url': url, 'file_info': 'pastebin_link'}
-        elif 'drive.google.com' in url:
-            return {'url': url, 'file_info': 'gdrive_link'}
-        elif 'google.com' in url:
-            return {'url': url, 'file_info': 'google_link'}
-        elif 'wikipedia.org' in url:
-            return {'url': url, 'file_info': 'wikipedia_link'}
-        elif 'pornhub.com' in url:
-            return {'url': url, 'file_info': '🍓'}
-        elif 't.me' in url:
-            return {'url': url, 'file_info': 'telegram_contact'}
-        elif 'dns-shop.ru' in url:
-            return {'url': url, 'file_info': 'dns_shop_link'}
-        elif 'habr.com' in url:
-            return {'url': url, 'file_info': 'habr_link'}
+        filter_result = links_filter(url)
+        if isinstance(filter_result, dict):
+            return filter_result
 
         async with semaphore:
             async with session.get(url, timeout=45) as response:
@@ -232,6 +241,9 @@ async def get_info(
                     if find_res == url:
                         return {'url': find_res, 'file_info': 'not_parse'}
                     async with session.get(find_res, timeout=900) as response:
+                        filter_result = links_filter(find_res)
+                        if isinstance(filter_result, dict):
+                            return filter_result
                         response_info = get_response_info(response.headers['content-type'])
                         download_path = join(save_path, response_info['full_type_info'])
                         tools.create_folder(download_path)
