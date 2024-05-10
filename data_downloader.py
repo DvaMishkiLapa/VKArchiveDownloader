@@ -94,17 +94,17 @@ def check_vk_title_error(soup: BeautifulSoup) -> str | bool:
     return False
 
 
-async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: str, cookies=None) -> str:
+async def find_link_by_url(url: str, pattern: str, cookies=None, response=None, session: aiohttp.ClientSession = None) -> str:
     '''
     Находит ссылку на файл из документа VK. Если не найдено, возвращает переданный `url`
-    `session`: сессия
     `url`: ссылка на документ VK, где нужно найти ссылку
     `pattern`: паттерн для поиска
-    - `doc`: паттерн для поиска ссылок в документах
     `cookies` куки для `aiohttp.ClientResponse`
+    `response`: ответ от первого запроса, если нужен
+    `session`: сессия ClientSession, если нужна
     '''
-    async with session.get(url, timeout=60, cookies=cookies) as response:
-        if 'doc' in pattern:
+    if 'doc' in pattern:
+        async with session.get(url, timeout=60, cookies=cookies) as response:
             doc_url_pattern = 'docUrl":"'
             doc_buy_pattern = '","docBuyLink'
             assert response.status == 200, f'Response status: {response.status}'
@@ -114,17 +114,17 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: st
                 first = text.find(doc_url_pattern)
                 second = text.find(doc_buy_pattern)
                 return text[first + len(doc_url_pattern):second].replace('\/', '/')
-        elif 'photo' in pattern:
-            soup = BeautifulSoup(await response.text(), 'html.parser')
-            check = check_vk_title_error(soup)
-            assert not check, f'Ошибка доступа к фото: {check}'
-            link = soup.find('meta', attrs={'name': 'og:image:secure_url'})
-            if link:
-                return link['value']
-        redirect_url = str(response.url)
-        if redirect_url != url:
-            return redirect_url
-        return url
+    elif 'photo' in pattern:
+        soup = BeautifulSoup(await response.text(), 'html.parser')
+        check = check_vk_title_error(soup)
+        assert not check, f'Ошибка доступа к фото: {check}'
+        link = soup.find('meta', attrs={'name': 'og:image:secure_url'})
+        if link:
+            return link['value']
+    redirect_url = str(response.url)
+    if redirect_url != url:
+        return redirect_url
+    return url
 
 
 async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> Coroutine:
@@ -216,9 +216,19 @@ async def get_info(
 
                 if 'text/html' in target_content_type:
                     if 'vk.com/doc' in url:
-                        find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
+                        find_res = await asyncio.create_task(find_link_by_url(
+                            url=url,
+                            pattern='doc',
+                            session=session,
+                            cookies=cookies
+                        ))
                     elif 'vk.com/photo':
-                        find_res = await asyncio.create_task(find_link_by_url(session, url, 'photo', cookies))
+                        find_res = await asyncio.create_task(find_link_by_url(
+                            url=url,
+                            pattern='photo',
+                            response=response,
+                            cookies=cookies
+                        ))
                     if find_res == url:
                         return {'url': find_res, 'file_info': 'not_parse'}
                     async with session.get(find_res, timeout=900) as response:
