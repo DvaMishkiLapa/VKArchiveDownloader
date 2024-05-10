@@ -7,6 +7,7 @@ from typing import Callable, Dict, Iterator, List, Tuple
 
 from bs4 import BeautifulSoup
 
+import tools
 from logger import create_logger
 
 config = ConfigParser()
@@ -277,6 +278,8 @@ class VKLinkFinder():
                 for el in find_links:
                     if el:
                         for date, links in el.items():
+                            if date != 'no_date':
+                                date = tools.get_numberic_date(date)
                             links_storage = all_links.setdefault(date, [])
                             links_storage.extend(links)
                             mes_links += len(links)
@@ -312,6 +315,7 @@ class VKLinkFinder():
             for el in find_links:
                 if el:
                     for albom, date_info in el.items():
+                        date_info = {tools.get_numberic_date(date): links for date, links in date_info.items()}
                         date_storage = result['photos'].setdefault(albom, {})
                         date_storage.update(date_info)
                         profile_photos_links += sum(len(items) for items in date_info.values())
@@ -327,11 +331,13 @@ class VKLinkFinder():
             logger.info(f'📁: {path}')
             find_links = list(self.walk_directory(path, self.get_doc_attachment, self.core_count))
             for el in find_links:
-                    if el:
-                        for date, links in el.items():
-                            links_storage = result['profile'].setdefault(date, [])
-                            links_storage.extend(links)
-                            documents_links += len(links)
+                if el:
+                    for date, links in el.items():
+                        if date != 'no_date':
+                            date = tools.get_numberic_date(date)
+                        links_storage = result['profile'].setdefault(date, [])
+                        links_storage.extend(links)
+                        documents_links += len(links)
             logger.info(f'🔍 Количество найденных 🔗 в {documents_folder}: {documents_links}')
             all_find_links += documents_links
 
