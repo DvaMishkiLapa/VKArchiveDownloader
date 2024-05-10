@@ -143,7 +143,14 @@ async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> 
             await f.write(data)
 
 
-async def get_info(url: str, save_path: str, file_name: str, session: aiohttp.ClientSession, cookies=None) -> Dict[str, str] | None:
+async def get_info(
+    url: str,
+    save_path: str,
+    file_name: str,
+    session: aiohttp.ClientSession,
+    semaphore: asyncio.BoundedSemaphore,
+    cookies=None
+) -> Dict[str, str] | None:
     '''
     Скачивает файл из `response`, возвращая о нем информацию:
     ```
@@ -187,42 +194,14 @@ async def get_info(url: str, save_path: str, file_name: str, session: aiohttp.Cl
         elif 'habr.com' in url:
             return {'url': url, 'file_info': 'habr_link'}
 
-        headers = {
-            'Accept-Language': 'ru',
-            'User-Agent': get_random_user_agent()
-        }
-
-        async with session.get(url, timeout=45) as response:
-            assert response.status == 200, f'Response status: {response.status}'
-            if any(t in response.headers['content-type'] for t in ('image', 'audio')):
-                response_info = get_response_info(response.headers['content-type'])
-                download_path = join(save_path, response_info['full_type_info'])
-                tools.create_folder(download_path)
-                download_file_name = get_file_name_by_link(str(response.url))
-                if download_file_name is None:
-                    download_file_name = f'{file_name}.{response_info["extension"]}'
-                await asyncio.create_task(
-                    downloader(
-                        response=response,
-                        path=download_path,
-                        name=download_file_name
-                    )
-                )
-                return {'url': str(response.url), 'file_info': response_info['full_type_info']}
-            target_content_type = response.headers['content-type']
-
-            if 'text/html' in target_content_type:
-                if 'vk.com/doc' in url:
-                    find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
-                elif 'vk.com/photo':
-                    find_res = await asyncio.create_task(find_link_by_url(session, url, 'photo', cookies))
-                if find_res == url:
-                    return {'url': find_res, 'file_info': 'not_parse'}
-                async with session.get(find_res, timeout=900) as response:
+        async with semaphore:
+            async with session.get(url, timeout=45) as response:
+                assert response.status == 200, f'Response status: {response.status}'
+                if any(t in response.headers['content-type'] for t in ('image', 'audio')):
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = join(save_path, response_info['full_type_info'])
                     tools.create_folder(download_path)
-                    download_file_name = get_file_name_by_link(find_res)
+                    download_file_name = get_file_name_by_link(str(response.url))
                     if download_file_name is None:
                         download_file_name = f'{file_name}.{response_info["extension"]}'
                     await asyncio.create_task(
@@ -233,6 +212,30 @@ async def get_info(url: str, save_path: str, file_name: str, session: aiohttp.Cl
                         )
                     )
                     return {'url': str(response.url), 'file_info': response_info['full_type_info']}
+                target_content_type = response.headers['content-type']
+
+                if 'text/html' in target_content_type:
+                    if 'vk.com/doc' in url:
+                        find_res = await asyncio.create_task(find_link_by_url(session, url, 'doc', cookies))
+                    elif 'vk.com/photo':
+                        find_res = await asyncio.create_task(find_link_by_url(session, url, 'photo', cookies))
+                    if find_res == url:
+                        return {'url': find_res, 'file_info': 'not_parse'}
+                    async with session.get(find_res, timeout=900) as response:
+                        response_info = get_response_info(response.headers['content-type'])
+                        download_path = join(save_path, response_info['full_type_info'])
+                        tools.create_folder(download_path)
+                        download_file_name = get_file_name_by_link(find_res)
+                        if download_file_name is None:
+                            download_file_name = f'{file_name}.{response_info["extension"]}'
+                        await asyncio.create_task(
+                            downloader(
+                                response=response,
+                                path=download_path,
+                                name=download_file_name
+                            )
+                        )
+                        return {'url': str(response.url), 'file_info': response_info['full_type_info']}
 
             return {'url': url, 'file_info': 'not_parse'}
     except asyncio.TimeoutError as e:

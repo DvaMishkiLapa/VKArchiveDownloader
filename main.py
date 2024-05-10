@@ -36,9 +36,9 @@ output_folder = 'output'
 async def messages_handler(
     info: Dict[str, Any],
     folder: str,
-    sema: asyncio.BoundedSemaphore,
     tcp_connector: aiohttp.TCPConnector,
     cookies: None,
+    sema: asyncio.BoundedSemaphore,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -58,7 +58,7 @@ async def messages_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
         for id, id_info in info.items():
             count_by_id = 0
             logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
@@ -82,6 +82,7 @@ async def messages_handler(
                         save_path=path_for_create,
                         file_name=links.index(v),
                         session=session,
+                        semaphore=sema,
                         cookies=cookies
                     )
                 ) for v in links]
@@ -98,9 +99,9 @@ async def messages_handler(
 async def likes_photo_handler(
     info: Dict[str, Any],
     folder: str,
-    sema: asyncio.BoundedSemaphore,
     tcp_connector: aiohttp.TCPConnector,
     cookies: None,
+    sema: asyncio.BoundedSemaphore,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -122,13 +123,14 @@ async def likes_photo_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
         tasks = [asyncio.ensure_future(
             data_downloader.get_info(
                 url=v,
                 save_path=path_for_create,
                 file_name=info['links'].index(v),
                 session=session,
+                semaphore=sema,
                 cookies=cookies
             )
         ) for v in info['links']]
@@ -145,9 +147,9 @@ async def likes_photo_handler(
 async def profile_photos_handler(
     info: Dict[str, Any],
     folder: str,
-    sema: asyncio.BoundedSemaphore,
     tcp_connector: aiohttp.TCPConnector,
     cookies: None,
+    sema: asyncio.BoundedSemaphore,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -168,7 +170,7 @@ async def profile_photos_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
         for albom, albom_info in info.items():
             logger.debug(f'Начата обработка 🔗 для {albom}')
             result[albom] = {}
@@ -191,6 +193,7 @@ async def profile_photos_handler(
                         save_path=path_for_create,
                         file_name=links.index(v),
                         session=session,
+                        semaphore=sema,
                         cookies=cookies
                     )
                 ) for v in links]
@@ -207,9 +210,9 @@ async def profile_photos_handler(
 async def profile_handler(
     info: Dict[str, Any],
     folder: str,
-    sema: asyncio.BoundedSemaphore,
     tcp_connector: aiohttp.TCPConnector,
     cookies: None,
+    sema: asyncio.BoundedSemaphore,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -236,7 +239,7 @@ async def profile_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
         for date, links in info.items():
             if save_by_date:
                 storage = result.setdefault(date, {})
@@ -252,6 +255,7 @@ async def profile_handler(
                     save_path=path_for_create,
                     file_name=links.index(v),
                     session=session,
+                    semaphore=sema,
                     cookies=cookies
                 )
             ) for v in links]
