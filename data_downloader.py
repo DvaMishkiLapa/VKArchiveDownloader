@@ -1,4 +1,5 @@
 import asyncio
+import ssl
 from configparser import ConfigParser
 from os.path import join
 from traceback import format_exc
@@ -7,10 +8,10 @@ from typing import Coroutine, Dict
 import aiofiles
 import aiohttp
 from bs4 import BeautifulSoup
+from latest_user_agents import get_random_user_agent
 
 import tools
 from logger import create_logger
-from latest_user_agents import get_random_user_agent
 
 config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
@@ -28,6 +29,7 @@ error_titles = [
 ]
 
 error_titles_html = [f'<title>{x}</title>' for x in error_titles]
+
 
 def get_response_info(content_type: str) -> Dict[str, str]:
     '''
@@ -111,7 +113,7 @@ async def find_link_by_url(session: aiohttp.ClientSession, url: str, pattern: st
                 assert not any(ext in text for ext in error_titles_html), 'Ошибка доступа к документу'
                 first = text.find(doc_url_pattern)
                 second = text.find(doc_buy_pattern)
-                return text[first+len(doc_url_pattern):second].replace('\/', '/')
+                return text[first + len(doc_url_pattern):second].replace('\/', '/')
         elif 'photo' in pattern:
             soup = BeautifulSoup(await response.text(), 'html.parser')
             check = check_vk_title_error(soup)
@@ -141,7 +143,7 @@ async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> 
             await f.write(data)
 
 
-async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.BoundedSemaphore, cookies=None) -> Dict[str, str] | None:
+async def get_info(url: str, save_path: str, file_name: str, session: aiohttp.ClientSession, cookies=None) -> Dict[str, str] | None:
     '''
     Скачивает файл из `response`, возвращая о нем информацию:
     ```
@@ -188,25 +190,24 @@ async def get_info(url: str, save_path: str, file_name: str, sema: asyncio.Bound
             'User-Agent': get_random_user_agent()
         }
 
-        async with sema, aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url, timeout=45) as response:
-                assert response.status == 200, f'Response status: {response.status}'
-                if any(t in response.headers['content-type'] for t in ('image', 'audio')):
-                    response_info = get_response_info(response.headers['content-type'])
-                    download_path = join(save_path, response_info['full_type_info'])
-                    tools.create_folder(download_path)
-                    download_file_name = get_file_name_by_link(str(response.url))
-                    if download_file_name is None:
-                        download_file_name = f'{file_name}.{response_info["extension"]}'
-                    await asyncio.create_task(
-                        downloader(
-                            response=response,
-                            path=download_path,
-                            name=download_file_name
-                        )
+        async with session.get(url, timeout=45) as response:
+            assert response.status == 200, f'Response status: {response.status}'
+            if any(t in response.headers['content-type'] for t in ('image', 'audio')):
+                response_info = get_response_info(response.headers['content-type'])
+                download_path = join(save_path, response_info['full_type_info'])
+                tools.create_folder(download_path)
+                download_file_name = get_file_name_by_link(str(response.url))
+                if download_file_name is None:
+                    download_file_name = f'{file_name}.{response_info["extension"]}'
+                await asyncio.create_task(
+                    downloader(
+                        response=response,
+                        path=download_path,
+                        name=download_file_name
                     )
-                    return {'url': str(response.url), 'file_info': response_info['full_type_info']}
-                target_content_type = response.headers['content-type']
+                )
+                return {'url': str(response.url), 'file_info': response_info['full_type_info']}
+            target_content_type = response.headers['content-type']
 
             if 'text/html' in target_content_type:
                 if 'vk.com/doc' in url:

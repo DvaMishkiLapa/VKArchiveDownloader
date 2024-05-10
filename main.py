@@ -1,5 +1,6 @@
 import asyncio
 import os
+import ssl
 from configparser import ConfigParser
 from datetime import datetime
 from json import dumps
@@ -8,8 +9,10 @@ from os.path import isdir, join
 from traceback import format_exc
 from typing import Any, Dict, Tuple
 
+import aiohttp
 import browser_cookie3
 import urllib3
+from latest_user_agents import get_random_user_agent
 from requests.utils import dict_from_cookiejar
 
 import data_downloader
@@ -30,60 +33,82 @@ else:
 output_folder = 'output'
 
 
-async def messages_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
+async def messages_handler(
+    info: Dict[str, Any],
+    folder: str,
+    sema: asyncio.BoundedSemaphore,
+    tcp_connector: aiohttp.TCPConnector,
+    cookies: None,
+    save_by_date: bool = False
+) -> Tuple[Any]:
     '''
     Обработчик данных о сообщениях
     `info` сырые данные для обработчика о сообщениях из `VKLinkFinder`
     `folder`: имя папки для хранения файлов
     `sema`: семафор для асинхронного скачивания
+    `tcp_connector`: TCP коннектор, если будут изменения в работе TCP
     `cookies` cookies файлы авторизации VK
 
     Возвращает структурированные данные и количество обработанных ссылок
     '''
     result = {}
     full_count = 0
-    for id, id_info in info.items():
-        count_by_id = 0
-        logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
-        result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
-        dialog_name_id = f'{tools.clear_charters_by_pattern(id_info["name"])}_{id}'
-        path_for_id = join(output_folder, folder, dialog_name_id)
-        tools.create_folder(path_for_id)
-        logger.debug(f'Создана папка по пути {path_for_id}')
-        for date, links in id_info['links'].items():
-            if save_by_date:
-                storage = result[id].setdefault(date, {})
-                path_for_create = join(path_for_id, date)
-                tools.create_folder(path_for_create)
-                logger.debug(f'Создана папка по пути {path_for_create}')
-            else:
-                storage = result[id]
-                path_for_create = path_for_id
-            tasks = [asyncio.ensure_future(
-                data_downloader.get_info(
-                    url=v,
-                    save_path=path_for_create,
-                    file_name=links.index(v),
-                    sema=sema,
-                    cookies=cookies
-                )
-            ) for v in links]
-            full_count += len(tasks)
-            tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-            count_by_id += len(tasks_result)
-            for res in tasks_result:
-                file_info = storage.setdefault(res['file_info'], [])
-                file_info.append(res['url'])
-        logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_id}')
+    headers = {
+        'Accept-Language': 'ru',
+        'User-Agent': get_random_user_agent()
+    }
+
+    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+        for id, id_info in info.items():
+            count_by_id = 0
+            logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
+            result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
+            dialog_name_id = f'{tools.clear_charters_by_pattern(id_info["name"])}_{id}'
+            path_for_id = join(output_folder, folder, dialog_name_id)
+            tools.create_folder(path_for_id)
+            logger.debug(f'Создана папка по пути {path_for_id}')
+            for date, links in id_info['links'].items():
+                if save_by_date:
+                    storage = result[id].setdefault(date, {})
+                    path_for_create = join(path_for_id, date)
+                    tools.create_folder(path_for_create)
+                    logger.debug(f'Создана папка по пути {path_for_create}')
+                else:
+                    storage = result[id]
+                    path_for_create = path_for_id
+                tasks = [asyncio.ensure_future(
+                    data_downloader.get_info(
+                        url=v,
+                        save_path=path_for_create,
+                        file_name=links.index(v),
+                        session=session,
+                        cookies=cookies
+                    )
+                ) for v in links]
+                full_count += len(tasks)
+                tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+                count_by_id += len(tasks_result)
+                for res in tasks_result:
+                    file_info = storage.setdefault(res['file_info'], [])
+                    file_info.append(res['url'])
+            logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_id}')
     return result, full_count
 
 
-async def likes_photo_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
+async def likes_photo_handler(
+    info: Dict[str, Any],
+    folder: str,
+    sema: asyncio.BoundedSemaphore,
+    tcp_connector: aiohttp.TCPConnector,
+    cookies: None,
+    save_by_date: bool = False
+) -> Tuple[Any]:
     '''
     Обработчик данных о лайкнутых фото
     `info` сырые данные для обработчика о лайкнутых фото из `VKLinkFinder`
     `folder`: имя папки для хранения файлов
     `sema`: семафор для асинхронного скачивания
+    `tcp_connector`: TCP коннектор, если будут изменения в работе TCP
     `cookies` cookies файлы авторизации VK
 
     Возвращает структурированные данные и количество обработанных ссылок
@@ -91,31 +116,46 @@ async def likes_photo_handler(info: Dict[str, Any], folder: str, sema: asyncio.B
     result = {}
     full_count = 0
     path_for_create = join(output_folder, folder)
-    tasks = [asyncio.ensure_future(
-        data_downloader.get_info(
-            url=v,
-            save_path=path_for_create,
-            file_name=info['links'].index(v),
-            sema=sema,
-            cookies=cookies
-        )
-    ) for v in info['links']]
-    count = len(tasks)
-    full_count += count
-    logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
-    tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+
+    headers = {
+        'Accept-Language': 'ru',
+        'User-Agent': get_random_user_agent()
+    }
+
+    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+        tasks = [asyncio.ensure_future(
+            data_downloader.get_info(
+                url=v,
+                save_path=path_for_create,
+                file_name=info['links'].index(v),
+                session=session,
+                cookies=cookies
+            )
+        ) for v in info['links']]
+        count = len(tasks)
+        full_count += count
+        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
     for res in tasks_result:
         file_info = result.setdefault(res['file_info'], [])
         file_info.append(res['url'])
     return result, full_count
 
 
-async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
+async def profile_photos_handler(
+    info: Dict[str, Any],
+    folder: str,
+    sema: asyncio.BoundedSemaphore,
+    tcp_connector: aiohttp.TCPConnector,
+    cookies: None,
+    save_by_date: bool = False
+) -> Tuple[Any]:
     '''
     Обработчик данных о фото профиля
     `info` сырые данные для обработчика о фото профиля из `VKLinkFinder`
     `folder`: имя папки для хранения файлов
     `sema`: семафор для асинхронного скачивания
+    `tcp_connector`: TCP коннектор, если будут изменения в работе TCP
     `cookies` cookies файлы авторизации VK
     `save_by_date`: сохранять ли файлы в подпапки на основе даты
 
@@ -123,47 +163,61 @@ async def profile_photos_handler(info: Dict[str, Any], folder: str, sema: asynci
     '''
     result = {}
     full_count = 0
-    for albom, albom_info in info.items():
-        logger.debug(f'Начата обработка 🔗 для {albom}')
-        result[albom] = {}
-        count_by_albom = 0
-        path_for_albom = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
-        tools.create_folder(path_for_albom)
-        logger.debug(f'Создана папка по пути {path_for_albom}')
-        for date, links in albom_info.items():
-            if save_by_date:
-                storage = result[albom].setdefault(date, {})
-                path_for_create = join(path_for_albom, tools.clear_charters_by_pattern(date))
-                tools.create_folder(path_for_create)
-                logger.debug(f'Создана папка по пути {path_for_create}')
-            else:
-                storage = result[albom]
-                path_for_create = path_for_albom
-            tasks = [asyncio.ensure_future(
-                data_downloader.get_info(
-                    url=v,
-                    save_path=path_for_create,
-                    file_name=links.index(v),
-                    sema=sema,
-                    cookies=cookies
-                )
-            ) for v in links]
-            full_count += len(tasks)
-            tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-            count_by_albom += len(tasks_result)
-            for res in tasks_result:
-                file_info = storage.setdefault(res['file_info'], [])
-                file_info.append(res['url'])
-        logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_albom}')
+    headers = {
+        'Accept-Language': 'ru',
+        'User-Agent': get_random_user_agent()
+    }
+
+    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+        for albom, albom_info in info.items():
+            logger.debug(f'Начата обработка 🔗 для {albom}')
+            result[albom] = {}
+            count_by_albom = 0
+            path_for_albom = join(output_folder, folder, tools.clear_charters_by_pattern(albom))
+            tools.create_folder(path_for_albom)
+            logger.debug(f'Создана папка по пути {path_for_albom}')
+            for date, links in albom_info.items():
+                if save_by_date:
+                    storage = result[albom].setdefault(date, {})
+                    path_for_create = join(path_for_albom, tools.clear_charters_by_pattern(date))
+                    tools.create_folder(path_for_create)
+                    logger.debug(f'Создана папка по пути {path_for_create}')
+                else:
+                    storage = result[albom]
+                    path_for_create = path_for_albom
+                tasks = [asyncio.ensure_future(
+                    data_downloader.get_info(
+                        url=v,
+                        save_path=path_for_create,
+                        file_name=links.index(v),
+                        session=session,
+                        cookies=cookies
+                    )
+                ) for v in links]
+                full_count += len(tasks)
+                tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+                count_by_albom += len(tasks_result)
+                for res in tasks_result:
+                    file_info = storage.setdefault(res['file_info'], [])
+                    file_info.append(res['url'])
+            logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_albom}')
     return result, full_count
 
 
-async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.BoundedSemaphore, cookies=None, save_by_date: bool = False) -> Tuple[Any]:
+async def profile_handler(
+    info: Dict[str, Any],
+    folder: str,
+    sema: asyncio.BoundedSemaphore,
+    tcp_connector: aiohttp.TCPConnector,
+    cookies: None,
+    save_by_date: bool = False
+) -> Tuple[Any]:
     '''
     Обработчик данных о профиле (скорее, о документах профиля)
     `info` сырые данные для обработчика о профиле `VKLinkFinder`
     `folder`: имя папки для хранения файлов
     `sema`: семафор для асинхронного скачивания
+    `tcp_connector`: TCP коннектор, если будут изменения в работе TCP
     `cookies` cookies файлы авторизации VK
 
     Возвращает структурированные данные и количество обработанных ссылок
@@ -176,30 +230,37 @@ async def profile_handler(info: Dict[str, Any], folder: str, sema: asyncio.Bound
     path_for_doc = join(output_folder, folder, info_type)
     logger.debug(f'Создана папка по пути {path_for_doc}')
     tools.create_folder(path_for_doc)
-    for date, links in info.items():
-        if save_by_date:
-            storage = result.setdefault(date, {})
-            path_for_create = join(path_for_doc, date)
-            tools.create_folder(path_for_create)
-            logger.debug(f'Создана папка по пути {path_for_create}')
-        else:
-            storage = result
-            path_for_create = path_for_doc
-        tasks = [asyncio.ensure_future(
-            data_downloader.get_info(
-                url=v,
-                save_path=path_for_create,
-                file_name=links.index(v),
-                sema=sema,
-                cookies=cookies
-            )
-        ) for v in links]
-        full_count += len(tasks)
-        tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
-        count_by_doc += len(tasks_result)
-        for res in tasks_result:
-            file_info = storage.setdefault(res['file_info'], [])
-            file_info.append(res['url'])
+
+    headers = {
+        'Accept-Language': 'ru',
+        'User-Agent': get_random_user_agent()
+    }
+
+    async with sema, aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+        for date, links in info.items():
+            if save_by_date:
+                storage = result.setdefault(date, {})
+                path_for_create = join(path_for_doc, date)
+                tools.create_folder(path_for_create)
+                logger.debug(f'Создана папка по пути {path_for_create}')
+            else:
+                storage = result
+                path_for_create = path_for_doc
+            tasks = [asyncio.ensure_future(
+                data_downloader.get_info(
+                    url=v,
+                    save_path=path_for_create,
+                    file_name=links.index(v),
+                    session=session,
+                    cookies=cookies
+                )
+            ) for v in links]
+            full_count += len(tasks)
+            tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
+            count_by_doc += len(tasks_result)
+            for res in tasks_result:
+                file_info = storage.setdefault(res['file_info'], [])
+                file_info.append(res['url'])
     logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_doc}')
     return result, full_count
 
@@ -329,6 +390,17 @@ async def main():
         with open(join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
             f.write(dumps(obj.link_info, indent=4, ensure_ascii=False))
 
+    disable_ssl = config['main_parameters'].getboolean('disable_ssl', False)
+
+    ssl_context = ssl.create_default_context()
+    if disable_ssl:
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+    else:
+        ssl_context.check_hostname = True
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+    conn = aiohttp.TCPConnector(ssl=ssl_context)
+
     result = {}
     full_count = 0
     start = datetime.now()
@@ -340,6 +412,7 @@ async def main():
                 info=info,
                 folder=folder_info[data_type]['folder'],
                 sema=folder_info[data_type]['semaphore'],
+                tcp_connector=conn,
                 cookies=cookies,
                 save_by_date=save_by_date
             )
