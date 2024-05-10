@@ -184,6 +184,8 @@ async def get_info(url: str, save_path: str, file_name: str, session: aiohttp.Cl
             return {'url': url, 'file_info': 'telegram_contact'}
         elif 'dns-shop.ru' in url:
             return {'url': url, 'file_info': 'dns_shop_link'}
+        elif 'habr.com' in url:
+            return {'url': url, 'file_info': 'habr_link'}
 
         headers = {
             'Accept-Language': 'ru',
