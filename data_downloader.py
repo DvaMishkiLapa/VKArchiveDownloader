@@ -134,6 +134,7 @@ async def downloader(response: aiohttp.ClientResponse, path: str, name: str) -> 
     `path`: путь, куда будет сохранен файл
     `name`: имя сохраняемого файла
     '''
+    tools.create_folder(path)
     block_size = 16384
     async with aiofiles.open(join(path, name), 'wb') as f:
         while True:
@@ -209,7 +210,6 @@ async def get_info(
                 if any(t in response.headers['content-type'] for t in ('image', 'audio')):
                     response_info = get_response_info(response.headers['content-type'])
                     download_path = tools.clear_charters_by_pattern(join(save_path, response_info['full_type_info']))
-                    tools.create_folder(download_path)
                     download_file_name = get_file_name_by_link(str(response.url))
                     if download_file_name is None:
                         download_file_name = f'{file_name}.{response_info["extension"]}'
@@ -246,7 +246,6 @@ async def get_info(
                             return filter_result
                         response_info = get_response_info(response.headers['content-type'])
                         download_path = tools.clear_charters_by_pattern(join(save_path, response_info['full_type_info']))
-                        tools.create_folder(download_path)
                         download_file_name = get_file_name_by_link(find_res)
                         if download_file_name is None:
                             download_file_name = f'{file_name}.{response_info["extension"]}'

@@ -65,14 +65,10 @@ async def messages_handler(
             result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
             dialog_name_id = f'{id_info["name"]}_{id}'
             path_for_id = tools.clear_charters_by_pattern(join(output_folder, folder, dialog_name_id))
-            tools.create_folder(path_for_id)
-            logger.debug(f'Создана папка по пути {path_for_id}')
             for date, links in id_info['links'].items():
                 if save_by_date:
                     storage = result[id].setdefault(date, {})
                     path_for_create = tools.clear_charters_by_pattern(join(path_for_id, date))
-                    tools.create_folder(path_for_create)
-                    logger.debug(f'Создана папка по пути {path_for_create}')
                 else:
                     storage = result[id]
                     path_for_create = path_for_id
@@ -176,14 +172,10 @@ async def profile_photos_handler(
             result[albom] = {}
             count_by_albom = 0
             path_for_albom = tools.clear_charters_by_pattern(join(output_folder, folder, albom))
-            tools.create_folder(path_for_albom)
-            logger.debug(f'Создана папка по пути {path_for_albom}')
             for date, links in albom_info.items():
                 if save_by_date:
                     storage = result[albom].setdefault(date, {})
                     path_for_create = tools.clear_charters_by_pattern(join(path_for_albom, date))
-                    tools.create_folder(path_for_create)
-                    logger.debug(f'Создана папка по пути {path_for_create}')
                 else:
                     storage = result[albom]
                     path_for_create = path_for_albom
@@ -231,8 +223,6 @@ async def profile_handler(
     info_type = 'documents'
     logger.debug(f'Начата обработка 🔗 для {info_type}')
     path_for_doc = tools.clear_charters_by_pattern(join(output_folder, folder, info_type))
-    logger.debug(f'Создана папка по пути {path_for_doc}')
-    tools.create_folder(path_for_doc)
 
     headers = {
         'Accept-Language': 'ru',
@@ -244,8 +234,6 @@ async def profile_handler(
             if save_by_date:
                 storage = result.setdefault(date, {})
                 path_for_create = tools.clear_charters_by_pattern(join(path_for_doc, date))
-                tools.create_folder(path_for_create)
-                logger.debug(f'Создана папка по пути {path_for_create}')
             else:
                 storage = result
                 path_for_create = path_for_doc

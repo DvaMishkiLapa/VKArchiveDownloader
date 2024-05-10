@@ -24,6 +24,7 @@ def create_folder(path: str) -> None:
     '''
     if not exists(path):
         makedirs(path)
+        logger.debug(f'Создана папка по пути {path}')
 
 
 def listdir_nohidden(path: str) -> Generator:
