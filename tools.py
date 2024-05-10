@@ -1,11 +1,13 @@
+import re
 from os import listdir, makedirs, remove
 from os.path import exists, isdir, join
 from shutil import rmtree
 from typing import Generator
-import re
+
+forbidden_char_name = r'[^0-9a-zA-Zа-яА-ЯёЁ.\s_\\\/-]'
 
 
-def clear_charters_by_pattern(input_str: str, pattern: str = r'[^0-9a-zA-Zа-яА-ЯёЁ.]+', repl_char: str = '_') -> str:
+def clear_charters_by_pattern(input_str: str, pattern: str = forbidden_char_name, repl_char: str = '_') -> str:
     '''
     Удаляет символы, удоволетворяющие регулярному выражению `pattern` из строки `input_str` на символ `repl_char`
     `input_str`: строка для очищения
