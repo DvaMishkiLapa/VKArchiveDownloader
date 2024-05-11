@@ -171,6 +171,14 @@ def links_filter(url: str) -> Dict[str, str] | None:
         return {'url': url, 'file_info': 'dns_shop_link'}
     elif 'habr.com' in url:
         return {'url': url, 'file_info': 'habr_link'}
+    elif 'goo.gl' in url:
+        return {'url': url, 'file_info': 'google_link'}
+    elif 'vk.com/club' in url:
+        return {'url': url, 'file_info': 'vk_club_link'}
+    elif 'onedrive.live.com' in url:
+        return {'url': url, 'file_info': 'onedrive_link'}
+    elif 'onedrive.com' in url:
+        return {'url': url, 'file_info': 'onedrive_link'}
     elif 'vk.com/login' in url:
         return {}
 
