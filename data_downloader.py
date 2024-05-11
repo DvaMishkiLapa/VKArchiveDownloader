@@ -248,25 +248,24 @@ async def get_info(
                         ))
                     if find_res == url:
                         return {'url': find_res, 'file_info': 'not_parse'}
-                    async with session.get(find_res, timeout=900) as response:
-                        filter_result = links_filter(find_res)
-                        if isinstance(filter_result, dict):
-                            return filter_result
-                        response_info = get_response_info(response.headers['content-type'])
-                        download_path = tools.clear_charters_by_pattern(join(save_path, response_info['full_type_info']))
-                        download_file_name = get_file_name_by_link(find_res)
-                        if download_file_name is None:
-                            download_file_name = f'{file_name}.{response_info["extension"]}'
-                        await asyncio.create_task(
-                            downloader(
-                                response=response,
-                                path=download_path,
-                                name=download_file_name
-                            )
-                        )
-                        return {'url': str(response.url), 'file_info': response_info['full_type_info']}
+            async with session.get(find_res, timeout=900) as response:
+                filter_result = links_filter(find_res)
+                if isinstance(filter_result, dict):
+                    return filter_result
+                response_info = get_response_info(response.headers['content-type'])
+                download_path = tools.clear_charters_by_pattern(join(save_path, response_info['full_type_info']))
+                download_file_name = get_file_name_by_link(find_res)
+                if download_file_name is None:
+                    download_file_name = f'{file_name}.{response_info["extension"]}'
+                await asyncio.create_task(
+                    downloader(
+                        response=response,
+                        path=download_path,
+                        name=download_file_name
+                    )
+                )
+                return {'url': str(response.url), 'file_info': response_info['full_type_info']}
 
-            return {'url': url, 'file_info': 'not_parse'}
     except asyncio.TimeoutError as e:
         logger.error(f'Ошибка 🔗 {url}: тайм-аут скачивания')
         logger.debug(format_exc())
