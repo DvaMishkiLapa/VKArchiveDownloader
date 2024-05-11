@@ -33,12 +33,23 @@ else:
 output_folder = 'output'
 
 
+def get_ssl_context_tcp_connector(disable_ssl: bool = False) -> aiohttp.TCPConnector:
+    ssl_context = ssl.create_default_context()
+    if disable_ssl:
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+    else:
+        ssl_context.check_hostname = True
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+    return aiohttp.TCPConnector(ssl=ssl_context)
+
+
 async def messages_handler(
     info: Dict[str, Any],
     folder: str,
-    tcp_connector: aiohttp.TCPConnector,
     cookies: None,
     sema: asyncio.BoundedSemaphore,
+    disable_ssl: bool = False,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -58,7 +69,9 @@ async def messages_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    conn = get_ssl_context_tcp_connector(disable_ssl)
+
+    async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         for id, id_info in info.items():
             count_by_id = 0
             logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
@@ -95,9 +108,9 @@ async def messages_handler(
 async def likes_photo_handler(
     info: Dict[str, Any],
     folder: str,
-    tcp_connector: aiohttp.TCPConnector,
     cookies: None,
     sema: asyncio.BoundedSemaphore,
+    disable_ssl: bool = False,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -119,7 +132,9 @@ async def likes_photo_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    conn = get_ssl_context_tcp_connector(disable_ssl)
+
+    async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         tasks = [asyncio.ensure_future(
             data_downloader.get_info(
                 url=v,
@@ -143,9 +158,9 @@ async def likes_photo_handler(
 async def profile_photos_handler(
     info: Dict[str, Any],
     folder: str,
-    tcp_connector: aiohttp.TCPConnector,
     cookies: None,
     sema: asyncio.BoundedSemaphore,
+    disable_ssl: bool = False,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -166,7 +181,9 @@ async def profile_photos_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    conn = get_ssl_context_tcp_connector(disable_ssl)
+
+    async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         for albom, albom_info in info.items():
             logger.debug(f'Начата обработка 🔗 для {albom}')
             result[albom] = {}
@@ -202,9 +219,9 @@ async def profile_photos_handler(
 async def profile_handler(
     info: Dict[str, Any],
     folder: str,
-    tcp_connector: aiohttp.TCPConnector,
     cookies: None,
     sema: asyncio.BoundedSemaphore,
+    disable_ssl: bool = False,
     save_by_date: bool = False
 ) -> Tuple[Any]:
     '''
@@ -229,7 +246,9 @@ async def profile_handler(
         'User-Agent': get_random_user_agent()
     }
 
-    async with aiohttp.ClientSession(headers=headers, connector=tcp_connector) as session:
+    conn = get_ssl_context_tcp_connector(disable_ssl)
+
+    async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         for date, links in info.items():
             if save_by_date:
                 storage = result.setdefault(date, {})
@@ -384,15 +403,6 @@ async def main():
 
     disable_ssl = config['main_parameters'].getboolean('disable_ssl', False)
 
-    ssl_context = ssl.create_default_context()
-    if disable_ssl:
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-    else:
-        ssl_context.check_hostname = True
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
-    conn = aiohttp.TCPConnector(ssl=ssl_context)
-
     result = {}
     full_count = 0
     start = datetime.now()
@@ -404,8 +414,8 @@ async def main():
                 info=info,
                 folder=folder_info[data_type]['folder'],
                 sema=folder_info[data_type]['semaphore'],
-                tcp_connector=conn,
                 cookies=cookies,
+                disable_ssl=disable_ssl,
                 save_by_date=save_by_date
             )
         )
