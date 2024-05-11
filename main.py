@@ -402,6 +402,8 @@ async def main():
             f.write(dumps(obj.link_info, indent=4, ensure_ascii=False))
 
     disable_ssl = config['main_parameters'].getboolean('disable_ssl', False)
+    if disable_ssl:
+        logger.warning('!!! ВНИМАНИЕ: проверка SSL сертификатов отключена !!!')
 
     result = {}
     full_count = 0
