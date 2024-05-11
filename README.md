@@ -1,8 +1,8 @@
-# VKArchiveDownloader
+# VKArchiveDownloader <img align="right" width="128" height="128" src="./doc/icon.png" alt="VKArchiveDownloader icon" />
 
 Утилита для скачивания данных по ссылкам, которые можно получить из [архива](https://vk.com/faq18145) аккаунта [VKontakte](https://vk.com/feed).
 
-- [VKArchiveDownloader](#vkarchivedownloader)
+- [VKArchiveDownloader ](#vkarchivedownloader-)
   - [1. Описание работы](#1-описание-работы)
   - [2. Результат работы](#2-результат-работы)
     - [2.1 JSON файл с ссылками](#21-json-файл-с-ссылками)
