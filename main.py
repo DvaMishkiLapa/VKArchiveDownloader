@@ -24,11 +24,10 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
-if config_read is None:
-    logger = create_logger('logs/vk_parser.log', 'main', 'DEBUG')
-else:
+log_level = 'DEBUG'
+if config_read:
     log_level = config['main_parameters'].get('log_level', 'DEBUG')
-    logger = create_logger('logs/vk_parser.log', 'main', log_level)
+logger = create_logger('logs/vk_parser.log', 'main', log_level)
 
 output_folder = 'output'
 

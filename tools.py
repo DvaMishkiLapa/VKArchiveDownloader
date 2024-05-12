@@ -9,11 +9,10 @@ from logger import create_logger
 
 config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
-if config_read is None:
-    logger = create_logger('logs/vk_parser.log', 'tools', 'DEBUG')
-else:
+log_level = 'DEBUG'
+if config_read:
     log_level = config['main_parameters'].get('log_level', 'DEBUG')
-    logger = create_logger('logs/vk_parser.log', 'tools', log_level)
+logger = create_logger('logs/vk_parser.log', 'tools', log_level)
 
 forbidden_char_name = r'[^0-9a-zA-Zа-яА-ЯёЁ.\s_\\\/-]'
 

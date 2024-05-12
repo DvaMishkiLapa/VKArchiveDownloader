@@ -15,11 +15,10 @@ from logger import create_logger
 
 config = ConfigParser()
 config_read = config.read('config.ini', encoding='utf8')
-if config_read is None:
-    logger = create_logger('logs/vk_parser.log', 'data_downloader', 'DEBUG')
-else:
+log_level = 'DEBUG'
+if config_read:
     log_level = config['main_parameters'].get('log_level', 'DEBUG')
-    logger = create_logger('logs/vk_parser.log', 'data_downloader', log_level)
+logger = create_logger('logs/vk_parser.log', 'data_downloader', log_level)
 
 error_titles = [
     'Ошибка | ВКонтакте',
