@@ -305,7 +305,14 @@ async def main():
         exit()
 
     if config['main_parameters'].getboolean('use_coockie', False):
-        cookies = dict_from_cookiejar(browser_cookie3.load(domain_name='vk.com'))
+        try:
+            cookies = dict_from_cookiejar(browser_cookie3.load(domain_name='vk.com'))
+        except PermissionError as e:
+            logger.error(
+                '''Ошибка доступа к Cookie-файлам. Возможно, не закрыт браузер, чьи Cookie-файлы используются.
+                   Подробнее: https://github.com/borisbabic/browser_cookie3/issues/180#issuecomment-1587691954''')
+            logger.exception('Полная ошибка:')
+            exit()
         logger.info('В работе утилиты будут использованы файлы 🍪')
     else:
         cookies = None
