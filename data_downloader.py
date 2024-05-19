@@ -150,6 +150,8 @@ def links_filter(url: str) -> Dict[str, str] | None:
         return {'url': url, 'file_info': 'vk_contact'}
     elif 'vk.com/story' in url:
         return {'url': url, 'file_info': 'vk_story'}
+    elif 'vk.com/club' in url:
+        return {'url': url, 'file_info': 'vk_club'}
     elif 'github.com' in url:
         return {'url': url, 'file_info': 'github_link'}
     elif 'aliexpress.com' in url:
@@ -172,12 +174,12 @@ def links_filter(url: str) -> Dict[str, str] | None:
         return {'url': url, 'file_info': 'habr_link'}
     elif 'goo.gl' in url:
         return {'url': url, 'file_info': 'google_link'}
-    elif 'vk.com/club' in url:
-        return {'url': url, 'file_info': 'vk_club_link'}
     elif 'onedrive.live.com' in url:
         return {'url': url, 'file_info': 'onedrive_link'}
     elif 'onedrive.com' in url:
         return {'url': url, 'file_info': 'onedrive_link'}
+    elif 'youtube.com' in url:
+        return {'url': url, 'file_info': 'youtube_link'}
     elif 'vk.com/login' in url:
         return {}
 
