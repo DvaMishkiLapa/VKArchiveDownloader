@@ -84,7 +84,7 @@ class VKLinkFinder():
                             date = mes.find('div', class_='message__header')
                             if date:
                                 date = date.text.strip()
-                                date = '_'.join(date.replace('\n', ' ').split(',')[1].split(' ')[1:4])
+                                date = '_'.join(date[date.rfind(', ') + 1:].split(' ')[1:4])
                             else:
                                 date = 'no_date'
                             link_storage = messages_info.setdefault(date, [])
