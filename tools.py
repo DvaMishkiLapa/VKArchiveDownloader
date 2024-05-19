@@ -1,7 +1,8 @@
 import re
 from configparser import ConfigParser
-from os import listdir, makedirs, remove
-from os.path import exists, isdir, join
+from datetime import datetime
+from os import listdir, makedirs, remove, rename
+from os.path import exists, getmtime, isdir, join, split, splitext
 from shutil import rmtree
 from typing import Generator
 
@@ -90,3 +91,19 @@ def clear_jsons(path: str) -> None:
     for f in listdir_nohidden(path):
         if '.json' in f:
             remove(join(path, f))
+
+
+def backup_file(file_path: str):
+    """
+    Функция для создания резервной копии файла (если файл существует) и сохранения данных.
+
+    `file_path`: Путь к файлу, в который будут сохраняться данные.
+    `data`: Словарь с данными, которые будут записаны в файл.
+    """
+    if exists(file_path):
+        creation_date = datetime.fromtimestamp(getmtime(file_path)).strftime('%d-%m-%Y-%H-%M-%S')
+        base_dir, filename = split(file_path)
+        filename_base, ext = splitext(filename)
+        new_filename = f"{filename_base}-{creation_date}{ext}"
+        new_filepath = join(base_dir, new_filename)
+        rename(file_path, new_filepath)

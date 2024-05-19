@@ -386,6 +386,7 @@ async def main():
     if delete_output_folder:
         logger.info(f'📁 {output_folder} будет отчищена перед началом работы 🗑️')
         tools.clear_folder(output_folder)
+        tools.clear_jsons(output_folder)
     else:
         logger.info(f'📁 {output_folder} останется нетронутой')
 
@@ -403,7 +404,10 @@ async def main():
         tools.create_folder(join(output_folder, folder))
 
     if 'DEBUG' in log_level:
-        with open(join(output_folder, 'dirty_links.json'), 'w', encoding='utf8') as f:
+        dirty_links_path = join(output_folder, 'dirty_links.json')
+        if not delete_output_folder:
+            tools.backup_file(dirty_links_path)
+        with open(dirty_links_path, 'w', encoding='utf8') as f:
             f.write(dumps(obj.link_info, indent=4, ensure_ascii=False))
 
     disable_ssl = config['main_parameters'].getboolean('disable_ssl', False)
@@ -432,7 +436,10 @@ async def main():
 
     logger.info(f'Количество обработанных 🔗: {full_count}')
     logger.info(f'⌛ обработки 🔗 и скачивания возможных: {full_end - start}')
-    with open(join(output_folder, 'links_info.json'), 'w', encoding='utf8') as f:
+    links_info_path = join(output_folder, 'links_info.json')
+    if not delete_output_folder:
+        tools.backup_file(links_info_path)
+    with open(links_info_path, 'w', encoding='utf8') as f:
         f.write(dumps(result, indent=4, ensure_ascii=False))
     logger.info(f'Общее ⌛ обработки архива VK: {full_end - first_start}')
 
