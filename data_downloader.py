@@ -65,6 +65,10 @@ def get_response_info(content_type: str) -> Dict[str, str]:
 
 
 def get_file_name_by_link(link: str) -> str | None:
+    '''
+    Возвращает имя файла по его ссылке, если возможно
+    `link`: ссылка
+    '''
     try:
         if '?extra=' in link:
             return link.split('/')[-1].split('?extra=')[0]
