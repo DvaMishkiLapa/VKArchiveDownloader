@@ -73,7 +73,7 @@ async def messages_handler(
     async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         for id, id_info in info.items():
             count_by_id = 0
-            logger.debug(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
+            logger.info(f'Начата обработка 🔗 для {id}, {id_info["name"]}')
             result[id] = {'name': id_info["name"], 'dialog_link': id_info['dialog_link']}
             dialog_name_id = f'{id_info["name"]}_{id}'
             path_for_id = tools.clear_charters_by_pattern(join(output_folder, folder, dialog_name_id))
@@ -100,7 +100,7 @@ async def messages_handler(
                 for res in tasks_result:
                     file_info = storage.setdefault(res['file_info'], [])
                     file_info.append(res['url'])
-            logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_id}')
+            logger.info(f'Количество валидных данных, полученных из 🔗: {count_by_id}')
     return result, full_count
 
 
@@ -146,7 +146,7 @@ async def likes_photo_handler(
         ) for v in info['links']]
         count = len(tasks)
         full_count += count
-        logger.debug(f'Задачи на обработку 🔗 созданы, их количество: {count}')
+        logger.info(f'Задачи на обработку 🔗 созданы, их количество: {count}')
         tasks_result = list(filter(lambda link: link, await asyncio.gather(*tasks)))
     for res in tasks_result:
         file_info = result.setdefault(res['file_info'], [])
@@ -184,7 +184,7 @@ async def profile_photos_handler(
 
     async with aiohttp.ClientSession(headers=headers, connector=conn) as session:
         for albom, albom_info in info.items():
-            logger.debug(f'Начата обработка 🔗 для {albom}')
+            logger.info(f'Начата обработка 🔗 для {albom}')
             result[albom] = {}
             count_by_albom = 0
             path_for_albom = tools.clear_charters_by_pattern(join(output_folder, folder, albom))
@@ -211,7 +211,7 @@ async def profile_photos_handler(
                 for res in tasks_result:
                     file_info = storage.setdefault(res['file_info'], [])
                     file_info.append(res['url'])
-            logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_albom}')
+            logger.info(f'Количество валидных данных, полученных из 🔗: {count_by_albom}')
     return result, full_count
 
 
@@ -237,7 +237,6 @@ async def profile_handler(
     full_count = 0
     count_by_doc = 0
     info_type = 'documents'
-    logger.debug(f'Начата обработка 🔗 для {info_type}')
     path_for_doc = tools.clear_charters_by_pattern(join(output_folder, folder, info_type))
 
     headers = {
@@ -271,7 +270,7 @@ async def profile_handler(
             for res in tasks_result:
                 file_info = storage.setdefault(res['file_info'], [])
                 file_info.append(res['url'])
-    logger.debug(f'Количество валидных данных, полученных из 🔗: {count_by_doc}')
+    logger.info(f'Количество валидных данных, полученных из 🔗: {count_by_doc}')
     return result, full_count
 
 
