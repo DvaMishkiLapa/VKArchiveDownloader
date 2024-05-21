@@ -3,6 +3,6 @@ aiohttp==3.9.5
 beautifulsoup4==4.12.3
 browser-cookie3==0.19.1
 certifi==2024.2.2
-requests==2.31.0
+requests==2.32.0
 urllib3==2.2.1
 latest-user-agents==0.0.3
