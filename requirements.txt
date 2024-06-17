@@ -4,5 +4,5 @@ beautifulsoup4==4.12.3
 browser-cookie3==0.19.1
 certifi==2024.2.2
 requests==2.31.0
-urllib3==2.2.1
+urllib3==2.2.2
 latest-user-agents==0.0.3
