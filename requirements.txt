@@ -1,5 +1,5 @@
 aiofiles==23.2.1
-aiohttp==3.9.5
+aiohttp==3.10.2
 beautifulsoup4==4.12.3
 browser-cookie3==0.19.1
 certifi==2024.2.2
