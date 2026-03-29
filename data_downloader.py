@@ -222,7 +222,8 @@ async def get_info(
                 assert response.status == 200, f'Response status: {response.status}'
                 if any(t in response.headers['content-type'] for t in ('image', 'audio')):
                     response_info = get_response_info(response.headers['content-type'])
-                    download_path = tools.clear_charters_by_pattern(join(save_path, response_info['full_type_info']))
+                    type_folder = response_info['full_type_info'].replace('/', '_')
+                    download_path = tools.clear_charters_by_pattern(join(save_path, type_folder))
                     download_file_name = get_file_name_by_link(str(response.url))
                     if download_file_name is None:
                         download_file_name = f'{file_name}.{response_info["extension"]}'
@@ -244,13 +245,15 @@ async def get_info(
                             session=session,
                             cookies=cookies
                         ))
-                    elif 'vk.com/photo':
+                    elif 'vk.com/photo' in url:
                         find_res = await asyncio.create_task(find_link_by_url(
                             url=url,
                             pattern='photo',
                             response=response,
                             cookies=cookies
                         ))
+                    else:
+                        return {'url': url, 'file_info': 'not_parse'}
                     if find_res == url:
                         return {'url': find_res, 'file_info': 'not_parse'}
             async with session.get(find_res, timeout=900) as response:
@@ -258,7 +261,8 @@ async def get_info(
                 if isinstance(filter_result, dict):
                     return filter_result
                 response_info = get_response_info(response.headers['content-type'])
-                download_path = tools.clear_charters_by_pattern(join(save_path, response_info['full_type_info']))
+                type_folder = response_info['full_type_info'].replace('/', '_')
+                download_path = tools.clear_charters_by_pattern(join(save_path, type_folder))
                 download_file_name = get_file_name_by_link(find_res)
                 if download_file_name is None:
                     download_file_name = f'{file_name}.{response_info["extension"]}'
